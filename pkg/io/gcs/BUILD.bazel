@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "k8s.io/test-infra/pkg/io/gcs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/io:go_default_library",
+        "@dev_gocloud//blob:go_default_library",
+        "@dev_gocloud//blob/gcsblob:go_default_library",
+        "@dev_gocloud//gcp:go_default_library",
+        "@org_golang_x_oauth2//google:go_default_library",
+    ],
+)
+
+filegroup(
+    name = "package-srcs",
+    srcs = glob(["**"]),
+    tags = ["automanaged"],
+    visibility = ["//visibility:private"],
+)
+
+filegroup(
+    name = "all-srcs",
+    srcs = [":package-srcs"],
+    tags = ["automanaged"],
+    visibility = ["//visibility:public"],
+)

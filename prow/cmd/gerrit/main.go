@@ -143,7 +143,7 @@ func (st *syncTime) init(hostProjects client.ProjectsFlag) error {
 }
 
 func (st *syncTime) currentState() (client.LastSyncState, error) {
-	r, err := st.opener.Reader(st.ctx, st.path)
+	r, err := st.opener.Reader(st.ctx, st.path, nil)
 	if io.IsNotExist(err) {
 		logrus.Warnf("lastSyncFallback not found at %q", st.path)
 		return nil, nil
@@ -194,7 +194,7 @@ func (st *syncTime) Update(newState client.LastSyncState) error {
 		return nil
 	}
 
-	w, err := st.opener.Writer(st.ctx, st.path)
+	w, err := st.opener.Writer(st.ctx, st.path, nil)
 	if err != nil {
 		return fmt.Errorf("open for write %q: %v", st.path, err)
 	}

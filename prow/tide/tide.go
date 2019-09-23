@@ -37,7 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"k8s.io/test-infra/pkg/io"
+	prowio "k8s.io/test-infra/pkg/io"
 	prowapi "k8s.io/test-infra/prow/apis/prowjobs/v1"
 	"k8s.io/test-infra/prow/config"
 	"k8s.io/test-infra/prow/errorutil"
@@ -224,7 +224,7 @@ type manager interface {
 }
 
 // NewController makes a Controller out of the given clients.
-func NewController(ghcSync, ghcStatus github.Client, mgr manager, cfg config.Getter, gc git.ClientFactory, maxRecordsPerPool int, opener io.Opener, historyURI, statusURI string, logger *logrus.Entry) (*Controller, error) {
+func NewController(ghcSync, ghcStatus github.Client, mgr manager, cfg config.Getter, gc git.ClientFactory, maxRecordsPerPool int, opener prowio.Opener, historyURI, statusURI string, logger *logrus.Entry) (*Controller, error) {
 	if logger == nil {
 		logger = logrus.NewEntry(logrus.StandardLogger())
 	}
@@ -242,7 +242,7 @@ func NewController(ghcSync, ghcStatus github.Client, mgr manager, cfg config.Get
 	return newSyncController(logger, ghcSync, mgr, cfg, gc, sc, hist)
 }
 
-func newStatusController(logger *logrus.Entry, ghc githubClient, mgr manager, gc git.ClientFactory, cfg config.Getter, opener io.Opener, statusURI string) (*statusController, error) {
+func newStatusController(logger *logrus.Entry, ghc githubClient, mgr manager, gc git.ClientFactory, cfg config.Getter, opener prowio.Opener, statusURI string) (*statusController, error) {
 	if err := mgr.GetFieldIndexer().IndexField(&prowapi.ProwJob{}, indexNamePassingJobs, indexFuncPassingJobs); err != nil {
 		return nil, fmt.Errorf("failed to add index for passing jobs to cache: %v", err)
 	}

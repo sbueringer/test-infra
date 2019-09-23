@@ -19,6 +19,7 @@ package artifact_uploader
 import (
 	"bytes"
 	"fmt"
+	prowio "k8s.io/test-infra/pkg/io"
 	"path"
 	"time"
 
@@ -36,7 +37,6 @@ import (
 	"k8s.io/test-infra/prow/gcsupload"
 	"k8s.io/test-infra/prow/kube"
 	"k8s.io/test-infra/prow/pod-utils/downwardapi"
-	"k8s.io/test-infra/prow/pod-utils/gcs"
 )
 
 const (
@@ -174,8 +174,8 @@ func (c *Controller) processNextItem() bool {
 	} else {
 		target = path.Join(ContainerLogDir, workItem.podName, fmt.Sprintf("%s.txt", workItem.containerName))
 	}
-	data := gcs.DataUpload(bytes.NewReader(log))
-	if err := c.gcsConfig.Run(&spec, map[string]gcs.UploadFunc{target: data}); err != nil {
+	data := prowio.DataUpload(bytes.NewReader(log), nil)
+	if err := c.gcsConfig.Run(&spec, map[string]prowio.UploadFunc{target: data}); err != nil {
 		c.handleErr(err, workItem)
 		return true
 	}

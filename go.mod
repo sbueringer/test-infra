@@ -18,10 +18,9 @@ require (
 	cloud.google.com/go v0.45.1
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0 // indirect
 	contrib.go.opencensus.io/exporter/stackdriver v0.12.8 // indirect
-	github.com/Azure/azure-pipeline-go v0.1.9 // indirect
-	github.com/Azure/azure-sdk-for-go v21.1.0+incompatible
-	github.com/Azure/azure-storage-blob-go v0.0.0-20190123011202-457680cc0804
-	github.com/Azure/go-autorest v11.1.2+incompatible
+	github.com/Azure/azure-sdk-for-go v30.1.0+incompatible
+	github.com/Azure/azure-storage-blob-go v0.8.0
+	github.com/Azure/go-autorest v12.0.0+incompatible
 	github.com/GoogleCloudPlatform/testgrid v0.0.1-alpha.3
 	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
 	github.com/andygrunwald/go-gerrit v0.0.0-20190120104749-174420ebee6c
@@ -42,8 +41,7 @@ require (
 	github.com/fsouza/fake-gcs-server v0.0.0-20180612165233-e85be23bdaa8
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
-	github.com/go-openapi/spec v0.19.4
-	github.com/go-sql-driver/mysql v0.0.0-20160411075031-7ebe0a500653 // indirect
+	github.com/go-openapi/spec v0.19.4 // indirect
 	github.com/go-test/deep v1.0.4
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/mock v1.3.1
@@ -71,7 +69,6 @@ require (
 	github.com/klauspost/cpuid v1.2.2 // indirect
 	github.com/klauspost/pgzip v1.2.1
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/lib/pq v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mattn/go-sqlite3 v0.0.0-20160514122348-38ee283dabf1 // indirect
@@ -91,6 +88,7 @@ require (
 	github.com/spf13/viper v1.3.2
 	github.com/tektoncd/pipeline v0.8.0
 	go.opencensus.io v0.22.2 // indirect
+	gocloud.dev v0.18.0
 	golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8
 	golang.org/x/lint v0.0.0-20190409202823-959b441ac422
 	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2

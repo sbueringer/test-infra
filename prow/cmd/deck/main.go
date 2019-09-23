@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	prowio "k8s.io/test-infra/pkg/io"
 	"net/http"
 	"net/url"
 	"os"
@@ -35,14 +36,12 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/storage"
 	"github.com/NYTimes/gziphandler"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"google.golang.org/api/option"
 	coreapi "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,6 +81,9 @@ import (
 	_ "k8s.io/test-infra/prow/spyglass/lenses/junit"
 	_ "k8s.io/test-infra/prow/spyglass/lenses/metadata"
 	_ "k8s.io/test-infra/prow/spyglass/lenses/restcoverage"
+
+	// Import storage providers
+	_ "k8s.io/test-infra/pkg/io/provider-imports"
 )
 
 // Omittable ProwJob fields.
@@ -672,24 +674,19 @@ func prodOnlyMain(cfg config.Getter, pluginAgent *plugins.ConfigAgent, o options
 }
 
 func initSpyglass(cfg config.Getter, o options, mux *http.ServeMux, ja *jobs.JobAgent, gitHubClient deckGitHubClient, gitClient git.ClientFactory) {
-	var c *storage.Client
-	var err error
-	if o.gcsCredentialsFile == "" {
-		c, err = storage.NewClient(context.Background(), option.WithoutAuthentication())
-	} else {
-		c, err = storage.NewClient(context.Background(), option.WithCredentialsFile(o.gcsCredentialsFile))
-	}
+	// FIXME check if some stuff can work without credentials (gcs)
+	opener, err := prowio.NewOpener(context.Background(), o.gcsCredentialsFile)
 	if err != nil {
-		logrus.WithError(err).Fatal("Error getting GCS client")
+		logrus.WithError(err).Fatal("Error getting Blob Store client")
 	}
-	sg := spyglass.New(ja, cfg, c, o.gcsCredentialsFile, context.Background())
+	sg := spyglass.New(ja, cfg, opener, context.Background())
 	sg.Start()
 
 	mux.Handle("/spyglass/static/", http.StripPrefix("/spyglass/static", staticHandlerFromDir(o.spyglassFilesLocation)))
 	mux.Handle("/spyglass/lens/", gziphandler.GzipHandler(http.StripPrefix("/spyglass/lens/", handleArtifactView(o, sg, cfg))))
 	mux.Handle("/view/", gziphandler.GzipHandler(handleRequestJobViews(sg, cfg, o, logrus.WithField("handler", "/view"))))
-	mux.Handle("/job-history/", gziphandler.GzipHandler(handleJobHistory(o, cfg, c, logrus.WithField("handler", "/job-history"))))
-	mux.Handle("/pr-history/", gziphandler.GzipHandler(handlePRHistory(o, cfg, c, gitHubClient, gitClient, logrus.WithField("handler", "/pr-history"))))
+	mux.Handle("/job-history/", gziphandler.GzipHandler(handleJobHistory(o, cfg, opener, logrus.WithField("handler", "/job-history"))))
+	mux.Handle("/pr-history/", gziphandler.GzipHandler(handlePRHistory(o, cfg, opener, gitHubClient, gitClient, logrus.WithField("handler", "/pr-history"))))
 }
 
 func loadToken(file string) ([]byte, error) {
@@ -840,10 +837,10 @@ func handleBadge(ja *jobs.JobAgent) http.HandlerFunc {
 //
 // Example:
 // - /job-history/kubernetes-jenkins/logs/ci-kubernetes-e2e-prow-canary
-func handleJobHistory(o options, cfg config.Getter, gcsClient *storage.Client, log *logrus.Entry) http.HandlerFunc {
+func handleJobHistory(o options, cfg config.Getter, opener prowio.Opener, log *logrus.Entry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setHeadersNoCaching(w)
-		tmpl, err := getJobHistory(r.URL, cfg(), gcsClient)
+		tmpl, err := getJobHistory(r.URL, opener)
 		if err != nil {
 			msg := fmt.Sprintf("failed to get job history: %v", err)
 			log.WithField("url", r.URL.String()).Error(msg)
@@ -858,10 +855,10 @@ func handleJobHistory(o options, cfg config.Getter, gcsClient *storage.Client, l
 // The url must look like this:
 //
 // /pr-history?org=<org>&repo=<repo>&pr=<pr number>
-func handlePRHistory(o options, cfg config.Getter, gcsClient *storage.Client, gitHubClient deckGitHubClient, gitClient git.ClientFactory, log *logrus.Entry) http.HandlerFunc {
+func handlePRHistory(o options, cfg config.Getter, opener prowio.Opener, gitHubClient deckGitHubClient, gitClient git.ClientFactory, log *logrus.Entry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setHeadersNoCaching(w)
-		tmpl, err := getPRHistory(r.URL, cfg(), gcsClient, gitHubClient, gitClient)
+		tmpl, err := getPRHistory(r.URL, cfg(), opener, gitHubClient, gitClient)
 		if err != nil {
 			msg := fmt.Sprintf("failed to get PR history: %v", err)
 			log.WithField("url", r.URL.String()).Info(msg)

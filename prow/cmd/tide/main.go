@@ -29,13 +29,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"k8s.io/test-infra/pkg/flagutil"
-	"k8s.io/test-infra/pkg/io"
+	prowio "k8s.io/test-infra/pkg/io"
 	"k8s.io/test-infra/prow/config"
 	"k8s.io/test-infra/prow/config/secret"
 	prowflagutil "k8s.io/test-infra/prow/flagutil"
 	"k8s.io/test-infra/prow/git/v2"
 	"k8s.io/test-infra/prow/logrusutil"
 	"k8s.io/test-infra/prow/tide"
+
+	// Import storage providers
+
+	_ "k8s.io/test-infra/pkg/io/provider-imports"
 )
 
 type options struct {
@@ -115,7 +119,7 @@ func main() {
 		logrus.WithError(err).Fatal("Invalid options")
 	}
 
-	opener, err := io.NewOpener(context.Background(), o.gcsCredentialsFile)
+	opener, err := prowio.NewOpener(context.Background(), o.gcsCredentialsFile)
 	if err != nil {
 		entry := logrus.WithError(err)
 		if p := o.gcsCredentialsFile; p != "" {

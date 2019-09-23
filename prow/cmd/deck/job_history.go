@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"path"
 	"regexp"
@@ -29,10 +28,8 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/api/iterator"
-	"k8s.io/test-infra/prow/config"
+	prowio "k8s.io/test-infra/pkg/io"
 	"k8s.io/test-infra/prow/pod-utils/gcs"
 )
 
@@ -44,12 +41,11 @@ const (
 	// ** Job history assumes the GCS layout specified here:
 	// https://github.com/kubernetes/test-infra/tree/master/gubernator#gcs-bucket-layout
 	logsPrefix     = gcs.NonPRLogs
-	spyglassPrefix = "/view/gcs"
+	spyglassPrefix = "/view"
 	emptyID        = int64(-1) // indicates no build id was specified
 )
 
 var (
-	prefixRe = regexp.MustCompile("gs://.*?/")
 	linkRe   = regexp.MustCompile("/([0-9]+)\\.txt$")
 )
 
@@ -65,20 +61,6 @@ type buildData struct {
 	commitHash   string
 }
 
-// storageBucket is an abstraction for unit testing
-type storageBucket interface {
-	getName() string
-	listSubDirs(prefix string) ([]string, error)
-	listAll(prefix string) ([]string, error)
-	readObject(key string) ([]byte, error)
-}
-
-// gcsBucket is our real implementation of storageBucket
-type gcsBucket struct {
-	name string
-	*storage.BucketHandle
-}
-
 type jobHistoryTemplate struct {
 	OlderLink    string
 	NewerLink    string
@@ -89,22 +71,9 @@ type jobHistoryTemplate struct {
 	Builds       []buildData
 }
 
-func (bucket gcsBucket) readObject(key string) ([]byte, error) {
-	obj := bucket.Object(key)
-	rc, err := obj.NewReader(context.Background())
-	if err != nil {
-		return []byte{}, fmt.Errorf("failed to get reader for GCS object: %v", err)
-	}
-	return ioutil.ReadAll(rc)
-}
-
-func (bucket gcsBucket) getName() string {
-	return bucket.name
-}
-
-func readLatestBuild(bucket storageBucket, root string) (int64, error) {
-	key := path.Join(root, latestBuildFile)
-	data, err := bucket.readObject(key)
+func readLatestBuild(opener prowio.Opener, root string) (int64, error) {
+	key := prowio.JoinStoragePath(root, latestBuildFile)
+	data, err := opener.ReadObject(context.TODO(), key)
 	if err != nil {
 		return -1, fmt.Errorf("failed to read %s: %v", key, err)
 	}
@@ -116,39 +85,41 @@ func readLatestBuild(bucket storageBucket, root string) (int64, error) {
 }
 
 // resolve sym links into the actual log directory for a particular test run
-func (bucket gcsBucket) resolveSymLink(symLink string) (string, error) {
-	data, err := bucket.readObject(symLink)
+func resolveSymLink(opener prowio.Opener, symLink string) (string, error) {
+	data, err := opener.ReadObject(context.TODO(), symLink)
 	if err != nil {
 		return "", fmt.Errorf("failed to read %s: %v", symLink, err)
 	}
-	// strip gs://<bucket-name> from global address `u`
-	u := strings.TrimSpace(string(data))
-	return prefixRe.ReplaceAllString(u, ""), nil
+	return string(data), nil
 }
 
-func (bucket gcsBucket) spyglassLink(root, id string) (string, error) {
-	p, err := bucket.getPath(root, id, "")
+func spyglassLink(opener prowio.Opener, storagePath, id string) (string, error) {
+	p, err := getPath(opener, storagePath, id, "")
 	if err != nil {
 		return "", fmt.Errorf("failed to get path: %v", err)
 	}
-	return path.Join(spyglassPrefix, bucket.getName(), p), nil
+	return path.Join(spyglassPrefix, prowio.EncodeStorageURL(p)), nil
 }
 
-func (bucket gcsBucket) getPath(root, id, fname string) (string, error) {
-	if strings.HasPrefix(root, logsPrefix) {
+func getPath(opener prowio.Opener, root, id, fname string) (string, error) {
+	_, relativePath, err := prowio.ParseStoragePath(root)
+	if err != nil {
+		return "", err
+	}
+	if strings.HasPrefix(relativePath, logsPrefix) {
 		return path.Join(root, id, fname), nil
 	}
-	symLink := path.Join(root, id+".txt")
-	dir, err := bucket.resolveSymLink(symLink)
+	symLink := prowio.JoinStoragePath(root, id+".txt")
+	dir, err := resolveSymLink(opener, symLink)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve sym link: %v", err)
 	}
-	return path.Join(dir, fname), nil
+	return prowio.JoinStoragePath(dir, fname), nil
 }
 
 // reads specified JSON file in to `data`
-func readJSON(bucket storageBucket, key string, data interface{}) error {
-	rawData, err := bucket.readObject(key)
+func readJSON(opener prowio.Opener, key string, data interface{}) error {
+	rawData, err := opener.ReadObject(context.TODO(), key)
 	if err != nil {
 		return fmt.Errorf("failed to read %s: %v", key, err)
 	}
@@ -159,55 +130,11 @@ func readJSON(bucket storageBucket, key string, data interface{}) error {
 	return nil
 }
 
-// Lists the GCS "directory paths" immediately under prefix.
-func (bucket gcsBucket) listSubDirs(prefix string) ([]string, error) {
-	if !strings.HasSuffix(prefix, "/") {
-		prefix += "/"
-	}
-	dirs := []string{}
-	it := bucket.Objects(context.Background(), &storage.Query{
-		Prefix:    prefix,
-		Delimiter: "/",
-	})
-	for {
-		attrs, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return dirs, err
-		}
-		if attrs.Prefix != "" {
-			dirs = append(dirs, attrs.Prefix)
-		}
-	}
-	return dirs, nil
-}
-
-// Lists all GCS keys with given prefix.
-func (bucket gcsBucket) listAll(prefix string) ([]string, error) {
-	keys := []string{}
-	it := bucket.Objects(context.Background(), &storage.Query{
-		Prefix: prefix,
-	})
-	for {
-		attrs, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return keys, err
-		}
-		keys = append(keys, attrs.Name)
-	}
-	return keys, nil
-}
-
 // Gets all build ids for a job.
-func (bucket gcsBucket) listBuildIDs(root string) ([]int64, error) {
+func listBuildIDs(opener prowio.Opener, root string) ([]int64, error) {
 	ids := []int64{}
 	if strings.HasPrefix(root, logsPrefix) {
-		dirs, err := bucket.listSubDirs(root)
+		dirs, err := opener.ListSubDirs(context.TODO(), root)
 		if err != nil {
 			return ids, fmt.Errorf("failed to list GCS directories: %v", err)
 		}
@@ -221,7 +148,7 @@ func (bucket gcsBucket) listBuildIDs(root string) ([]int64, error) {
 			}
 		}
 	} else {
-		keys, err := bucket.listAll(root)
+		keys, err := opener.ListSubPaths(context.TODO(), root)
 		if err != nil {
 			return ids, fmt.Errorf("failed to list GCS keys: %v", err)
 		}
@@ -240,24 +167,14 @@ func (bucket gcsBucket) listBuildIDs(root string) ([]int64, error) {
 	return ids, nil
 }
 
-func parseJobHistURL(url *url.URL) (bucketName, root string, buildID int64, err error) {
+func parseJobHistURL(url *url.URL) (path string, buildID int64, err error) {
 	buildID = emptyID
-	p := strings.TrimPrefix(url.Path, "/job-history/")
-	s := strings.SplitN(p, "/", 2)
-	if len(s) < 2 {
-		err = fmt.Errorf("invalid path (expected /job-history/<gcs-path>): %v", url.Path)
-		return
-	}
-	bucketName = s[0]
-	root = s[1] // `root` is the root GCS "directory" prefix for this job's results
-	if bucketName == "" {
+	path = strings.TrimPrefix(url.Path, "/job-history/")
+	if path == "" {
 		err = fmt.Errorf("missing GCS bucket name: %v", url.Path)
 		return
 	}
-	if root == "" {
-		err = fmt.Errorf("invalid GCS path for job: %v", url.Path)
-		return
-	}
+	path = prowio.DecodeStorageURL(path)
 
 	if idVals := url.Query()[idParam]; len(idVals) >= 1 && idVals[0] != "" {
 		buildID, err = strconv.ParseInt(idVals[0], 10, 64)
@@ -286,13 +203,13 @@ func linkID(url *url.URL, id int64) string {
 	return u.String()
 }
 
-func getBuildData(bucket storageBucket, dir string) (buildData, error) {
+func getBuildData(opener prowio.Opener, dir string) (buildData, error) {
 	b := buildData{
 		Result:     "Unknown",
 		commitHash: "Unknown",
 	}
 	started := gcs.Started{}
-	err := readJSON(bucket, path.Join(dir, "started.json"), &started)
+	err := readJSON(opener, prowio.JoinStoragePath(dir, "started.json"), &started)
 	if err != nil {
 		return b, fmt.Errorf("failed to read started.json: %v", err)
 	}
@@ -301,7 +218,7 @@ func getBuildData(bucket storageBucket, dir string) (buildData, error) {
 		b.commitHash = commitHash
 	}
 	finished := gcs.Finished{}
-	err = readJSON(bucket, path.Join(dir, "finished.json"), &finished)
+	err = readJSON(opener, prowio.JoinStoragePath(dir, "finished.json"), &finished)
 	if err != nil {
 		b.Result = "Pending"
 		logrus.Debugf("failed to read finished.json (job might be unfinished): %v", err)
@@ -349,18 +266,17 @@ func (a int64slice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a int64slice) Less(i, j int) bool { return a[i] < a[j] }
 
 // Gets job history from the GCS bucket specified in config.
-func getJobHistory(url *url.URL, config *config.Config, gcsClient *storage.Client) (jobHistoryTemplate, error) {
+func getJobHistory(url *url.URL, opener prowio.Opener) (jobHistoryTemplate, error) {
 	start := time.Now()
 	tmpl := jobHistoryTemplate{}
 
-	bucketName, root, top, err := parseJobHistURL(url)
+	storagePath, top, err := parseJobHistURL(url)
 	if err != nil {
 		return tmpl, fmt.Errorf("invalid url %s: %v", url.String(), err)
 	}
-	tmpl.Name = root
-	bucket := gcsBucket{bucketName, gcsClient.Bucket(bucketName)}
+	tmpl.Name = storagePath
 
-	latest, err := readLatestBuild(bucket, root)
+	latest, err := readLatestBuild(opener, storagePath)
 	if err != nil {
 		return tmpl, fmt.Errorf("failed to locate build data: %v", err)
 	}
@@ -371,7 +287,7 @@ func getJobHistory(url *url.URL, config *config.Config, gcsClient *storage.Clien
 		tmpl.LatestLink = linkID(url, emptyID)
 	}
 
-	buildIDs, err := bucket.listBuildIDs(root)
+	buildIDs, err := listBuildIDs(opener, storagePath)
 	if err != nil {
 		return tmpl, fmt.Errorf("failed to get build ids: %v", err)
 	}
@@ -403,19 +319,19 @@ func getJobHistory(url *url.URL, config *config.Config, gcsClient *storage.Clien
 	for i, buildID := range shownIDs {
 		go func(i int, buildID int64) {
 			id := strconv.FormatInt(buildID, 10)
-			dir, err := bucket.getPath(root, id, "")
+			dir, err := getPath(opener, storagePath, id, "")
 			if err != nil {
 				logrus.Errorf("failed to get path: %v", err)
 				bch <- buildData{}
 				return
 			}
-			b, err := getBuildData(bucket, dir)
+			b, err := getBuildData(opener, dir)
 			if err != nil {
 				logrus.Warningf("build %d information incomplete: %v", buildID, err)
 			}
 			b.index = i
 			b.ID = id
-			b.SpyglassLink, err = bucket.spyglassLink(root, id)
+			b.SpyglassLink, err = spyglassLink(opener, storagePath, id)
 			if err != nil {
 				logrus.Errorf("failed to get spyglass link: %v", err)
 			}

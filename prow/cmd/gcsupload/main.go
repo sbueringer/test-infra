@@ -20,12 +20,12 @@ package main
 
 import (
 	"github.com/sirupsen/logrus"
+	prowio "k8s.io/test-infra/pkg/io"
 	"k8s.io/test-infra/prow/pod-utils/downwardapi"
 	"k8s.io/test-infra/prow/pod-utils/options"
 
 	"k8s.io/test-infra/prow/gcsupload"
 	"k8s.io/test-infra/prow/logrusutil"
-	"k8s.io/test-infra/prow/pod-utils/gcs"
 )
 
 func main() {
@@ -45,7 +45,7 @@ func main() {
 		logrus.WithError(err).Fatal("Could not resolve job spec")
 	}
 
-	if err := o.Run(spec, map[string]gcs.UploadFunc{}); err != nil {
+	if err := o.Run(spec, map[string]prowio.UploadFunc{}); err != nil {
 		logrus.WithError(err).Fatal("Failed to upload to GCS")
 	}
 }

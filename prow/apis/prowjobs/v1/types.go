@@ -463,6 +463,9 @@ const (
 // GCSConfiguration holds options for pushing logs and
 // artifacts to GCS from a job.
 type GCSConfiguration struct {
+
+	Path string `json:"path,omitempty"`
+
 	// Bucket is the GCS bucket to upload to
 	Bucket string `json:"bucket,omitempty"`
 	// PathPrefix is an optional path that follows the

@@ -30,7 +30,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/test-infra/pkg/io"
+	prowio "k8s.io/test-infra/pkg/io"
 	prowapi "k8s.io/test-infra/prow/apis/prowjobs/v1"
 )
 
@@ -45,19 +45,19 @@ type History struct {
 	sync.Mutex
 	logSizeLimit int
 
-	opener io.Opener
+	opener prowio.Opener
 	path   string
 }
 
-func readHistory(maxRecordsPerKey int, opener io.Opener, path string) (map[string]*recordLog, error) {
-	reader, err := opener.Reader(context.Background(), path)
-	if io.IsNotExist(err) { // No history exists yet. This is not an error.
+func readHistory(maxRecordsPerKey int, opener prowio.Opener, path string) (map[string]*recordLog, error) {
+	reader, err := opener.Reader(context.Background(), path, nil)
+	if prowio.IsNotExist(err) { // No history exists yet. This is not an error.
 		return map[string]*recordLog{}, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("open: %v", err)
 	}
-	defer io.LogClose(reader)
+	defer prowio.LogClose(reader)
 	raw, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("read: %v", err)
@@ -82,13 +82,13 @@ func readHistory(maxRecordsPerKey int, opener io.Opener, path string) (map[strin
 	return logsByPool, nil
 }
 
-func writeHistory(opener io.Opener, path string, hist map[string][]*Record) error {
+func writeHistory(opener prowio.Opener, path string, hist map[string][]*Record) error {
 	// a write's duration will scale with the volume of data to write but large
 	// data sets can finish in about 500ms; a timeout of 30s should not evict
 	// well-behaved writes
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	writer, err := opener.Writer(ctx, path)
+	writer, err := opener.Writer(ctx, path, nil)
 	if err != nil {
 		return fmt.Errorf("open: %v", err)
 	}
@@ -97,7 +97,7 @@ func writeHistory(opener io.Opener, path string, hist map[string][]*Record) erro
 		return fmt.Errorf("marshal: %v", err)
 	}
 	if _, err := fmt.Fprint(writer, string(b)); err != nil {
-		io.LogClose(writer)
+		prowio.LogClose(writer)
 		return fmt.Errorf("write: %v", err)
 	}
 	if err := writer.Close(); err != nil {
@@ -116,7 +116,7 @@ type Record struct {
 }
 
 // New creates a new History struct with the specificed recordLog size limit.
-func New(maxRecordsPerKey int, opener io.Opener, path string) (*History, error) {
+func New(maxRecordsPerKey int, opener prowio.Opener, path string) (*History, error) {
 	hist := &History{
 		logs:         map[string]*recordLog{},
 		logSizeLimit: maxRecordsPerKey,

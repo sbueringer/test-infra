@@ -28,10 +28,10 @@ import (
 	"strconv"
 	"strings"
 
-	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 
 	"github.com/GoogleCloudPlatform/testgrid/metadata"
+	prowio "k8s.io/test-infra/pkg/io"
 	prowapi "k8s.io/test-infra/prow/apis/prowjobs/v1"
 	"k8s.io/test-infra/prow/config"
 	"k8s.io/test-infra/prow/deck/jobs"
@@ -41,7 +41,6 @@ import (
 
 // Key types specify the way Spyglass will fetch artifact handles
 const (
-	gcsKeyType  = "gcs"
 	prowKeyType = "prowjob"
 )
 
@@ -77,15 +76,15 @@ type ExtraLink struct {
 }
 
 // New constructs a Spyglass object from a JobAgent, a config.Agent, and a storage Client.
-func New(ja *jobs.JobAgent, cfg config.Getter, c *storage.Client, gcsCredsFile string, ctx context.Context) *Spyglass {
+func New(ja *jobs.JobAgent, cfg config.Getter, opener prowio.Opener, ctx context.Context) *Spyglass {
 	return &Spyglass{
 		JobAgent:              ja,
 		config:                cfg,
 		PodLogArtifactFetcher: NewPodLogArtifactFetcher(ja),
-		GCSArtifactFetcher:    NewGCSArtifactFetcher(c, gcsCredsFile),
+		GCSArtifactFetcher:    NewGCSArtifactFetcher(opener),
 		testgrid: &TestGrid{
 			conf:   cfg,
-			client: c,
+			opener: opener,
 			ctx:    ctx,
 		},
 	}
@@ -136,25 +135,21 @@ func (sg *Spyglass) Lenses(lensConfigIndexes []int) (orderedIndexes []int, lensM
 
 func (sg *Spyglass) ResolveSymlink(src string) (string, error) {
 	src = strings.TrimSuffix(src, "/")
-	keyType, key, err := splitSrc(src)
+	keyType, _, err := splitSrc(src)
 	if err != nil {
 		return "", fmt.Errorf("error parsing src: %v", src)
 	}
-	switch keyType {
-	case prowKeyType:
+	switch {
+	case keyType == prowKeyType:
 		return src, nil // prowjob keys cannot be symlinks.
-	case gcsKeyType:
-		parts := strings.SplitN(key, "/", 2)
-		if len(parts) != 2 {
-			return "", fmt.Errorf("gcs path should look like '{bucket}/{path}', missing at least one.")
-		}
-		bucketName := parts[0]
-		prefix := parts[1]
-		bkt := sg.client.Bucket(bucketName)
-		obj := bkt.Object(prefix + ".txt")
-		reader, err := obj.NewReader(context.Background())
-		if err != nil {
+	case prowio.URLHasStorageProviderPrefix(src):
+		src = prowio.DecodeStorageURL(src)
+		reader, err := sg.opener.Reader(context.TODO(), src + ".txt", nil)
+		if prowio.IsNotExist(err) {
 			return src, nil
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to read symlink file (which does seem to exist): %v", err)
 		}
 		// Avoid using ReadAll here to prevent an attacker forcing us to read a giant file into memory.
 		bytes := make([]byte, 4096) // assume we won't get more than 4 kB of symlink to read
@@ -169,10 +164,8 @@ func (sg *Spyglass) ResolveSymlink(src string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to parse URL: %v", err)
 		}
-		if u.Scheme != "gs" {
-			return "", fmt.Errorf("expected gs:// symlink, got '%s://'", u.Scheme)
-		}
-		return path.Join(gcsKeyType, u.Host, u.Path), nil
+		// FIXME: test somehow
+		return prowio.DecodeStorageURL(path.Join(keyType, u.Host, u.Path)), nil
 	default:
 		return "", fmt.Errorf("unknown src key type %q", keyType)
 	}
@@ -181,27 +174,28 @@ func (sg *Spyglass) ResolveSymlink(src string) (string, error) {
 // JobPath returns a link to the GCS directory for the job specified in src
 func (sg *Spyglass) JobPath(src string) (string, error) {
 	src = strings.TrimSuffix(src, "/")
-	keyType, key, err := splitSrc(src)
+	keyType, key, err := splitSrc(prowio.EncodeStorageURL(src))
 	if err != nil {
 		return "", fmt.Errorf("error parsing src: %v", src)
 	}
 	split := strings.Split(key, "/")
-	switch keyType {
-	case gcsKeyType:
+	switch {
+	case prowio.PathHasStorageProviderPrefix(src):
 		if len(split) < 4 {
 			return "", fmt.Errorf("invalid key %s: expected <bucket-name>/<log-type>/.../<job-name>/<build-id>", key)
 		}
 		// see https://github.com/kubernetes/test-infra/tree/master/gubernator
+		// FIXME adjust for path (which can be more than just bucket)
 		bktName := split[0]
 		logType := split[1]
 		jobName := split[len(split)-2]
 		if logType == gcs.NonPRLogs {
-			return path.Dir(key), nil
+			return path.Join(keyType, path.Dir(key)), nil
 		} else if logType == gcs.PRLogs {
-			return path.Join(bktName, gcs.PRLogs, "directory", jobName), nil
+			return path.Join(keyType, bktName, gcs.PRLogs, "directory", jobName), nil
 		}
 		return "", fmt.Errorf("unrecognized GCS key: %s", key)
-	case prowKeyType:
+	case keyType == prowKeyType:
 		if len(split) < 2 {
 			return "", fmt.Errorf("invalid key %s: expected <job-name>/<build-id>", key)
 		}
@@ -231,21 +225,21 @@ func (sg *Spyglass) JobPath(src string) (string, error) {
 // If no job is found, it returns an empty string and nil error.
 func (sg *Spyglass) ProwJobName(src string) (string, error) {
 	src = strings.TrimSuffix(src, "/")
-	keyType, key, err := splitSrc(src)
+	keyType, key, err := splitSrc(prowio.EncodeStorageURL(src))
 	if err != nil {
 		return "", fmt.Errorf("error parsing src: %v", src)
 	}
 	split := strings.Split(key, "/")
 	var jobName string
 	var buildID string
-	switch keyType {
-	case gcsKeyType:
+	switch {
+	case prowio.PathHasStorageProviderPrefix(src):
 		if len(split) < 4 {
 			return "", fmt.Errorf("invalid key %s: expected <bucket-name>/<log-type>/.../<job-name>/<build-id>", key)
 		}
 		jobName = split[len(split)-2]
 		buildID = split[len(split)-1]
-	case prowKeyType:
+	case keyType == prowKeyType:
 		if len(split) < 2 {
 			return "", fmt.Errorf("invalid key %s: expected <job-name>/<build-id>", key)
 		}
@@ -267,14 +261,14 @@ func (sg *Spyglass) ProwJobName(src string) (string, error) {
 // RunPath returns the path to the GCS directory for the job run specified in src.
 func (sg *Spyglass) RunPath(src string) (string, error) {
 	src = strings.TrimSuffix(src, "/")
-	keyType, key, err := splitSrc(src)
+	keyType, key, err := splitSrc(prowio.EncodeStorageURL(src))
 	if err != nil {
 		return "", fmt.Errorf("error parsing src: %v", src)
 	}
-	switch keyType {
-	case gcsKeyType:
+	switch {
+	case prowio.PathHasStorageProviderPrefix(src):
 		return key, nil
-	case prowKeyType:
+	case keyType == prowKeyType:
 		return sg.prowToGCS(key)
 	default:
 		return "", fmt.Errorf("unrecognized key type for src: %v", src)
@@ -285,7 +279,7 @@ func (sg *Spyglass) RunPath(src string) (string, error) {
 // Returns an error if src does not reference a job with an associated PR.
 func (sg *Spyglass) RunToPR(src string) (string, string, int, error) {
 	src = strings.TrimSuffix(src, "/")
-	keyType, key, err := splitSrc(src)
+	keyType, key, err := splitSrc(prowio.EncodeStorageURL(src))
 	if err != nil {
 		return "", "", 0, fmt.Errorf("error parsing src: %v", src)
 	}
@@ -293,8 +287,8 @@ func (sg *Spyglass) RunToPR(src string) (string, string, int, error) {
 	if len(split) < 2 {
 		return "", "", 0, fmt.Errorf("expected more URL components in %q", src)
 	}
-	switch keyType {
-	case gcsKeyType:
+	switch {
+	case prowio.PathHasStorageProviderPrefix(src):
 		// In theory, we could derive this information without trying to parse the URL by instead fetching the
 		// data from uploaded artifacts. In practice, that would not be a great solution: it would require us
 		// to try pulling two different metadata files (one for bootstrap and one for podutils), then parse them
@@ -342,7 +336,7 @@ func (sg *Spyglass) RunToPR(src string) (string, string, int, error) {
 		} else {
 			return "", "", 0, fmt.Errorf("unknown log type: %q", logType)
 		}
-	case prowKeyType:
+	case keyType == prowKeyType:
 		if len(split) < 2 {
 			return "", "", 0, fmt.Errorf("invalid key %s: expected <job-name>/<build-id>", key)
 		}

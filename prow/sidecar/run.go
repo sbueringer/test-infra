@@ -31,6 +31,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	prowio "k8s.io/test-infra/pkg/io"
 	"k8s.io/test-infra/prow/entrypoint"
 	"k8s.io/test-infra/prow/pod-utils/downwardapi"
 	"k8s.io/test-infra/prow/pod-utils/gcs"
@@ -167,8 +168,8 @@ func combineMetadata(entries []wrapper.Options) map[string]interface{} {
 }
 
 func (o Options) doUpload(spec *downwardapi.JobSpec, passed, aborted bool, metadata map[string]interface{}, logReader io.Reader) error {
-	uploadTargets := map[string]gcs.UploadFunc{
-		"build-log.txt": gcs.DataUpload(logReader),
+	uploadTargets := map[string]prowio.UploadFunc{
+		"build-log.txt": prowio.DataUpload(logReader, nil),
 	}
 
 	var result string
@@ -197,7 +198,7 @@ func (o Options) doUpload(spec *downwardapi.JobSpec, passed, aborted bool, metad
 	if err != nil {
 		logrus.WithError(err).Warn("Could not marshal finishing data")
 	} else {
-		uploadTargets["finished.json"] = gcs.DataUpload(bytes.NewBuffer(finishedData))
+		uploadTargets["finished.json"] = prowio.DataUpload(bytes.NewBuffer(finishedData), nil)
 	}
 
 	if err := o.GcsOptions.Run(spec, uploadTargets); err != nil {
