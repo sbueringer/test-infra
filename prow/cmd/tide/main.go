@@ -35,8 +35,6 @@ import (
 	prowflagutil "k8s.io/test-infra/prow/flagutil"
 	"k8s.io/test-infra/prow/git/v2"
 	"k8s.io/test-infra/prow/logrusutil"
-	"k8s.io/test-infra/prow/metrics"
-	"k8s.io/test-infra/prow/pjutil"
 	"k8s.io/test-infra/prow/tide"
 )
 
@@ -110,7 +108,7 @@ func main() {
 
 	defer interrupts.WaitForGracefulShutdown()
 
-	pjutil.ServePProf()
+	//pjutil.ServePProf()
 
 	o := gatherOptions(flag.NewFlagSet(os.Args[0], flag.ExitOnError), os.Args[1:]...)
 	if err := o.Validate(); err != nil {
@@ -197,7 +195,7 @@ func main() {
 	server := &http.Server{Addr: ":" + strconv.Itoa(o.port)}
 
 	// Push metrics to the configured prometheus pushgateway endpoint or serve them
-	metrics.ExposeMetrics("tide", cfg().PushGateway)
+	//metrics.ExposeMetrics("tide", cfg().PushGateway)
 
 	start := time.Now()
 	sync(c)

@@ -32,8 +32,6 @@ import (
 	prowflagutil "k8s.io/test-infra/prow/flagutil"
 	"k8s.io/test-infra/prow/interrupts"
 	"k8s.io/test-infra/prow/logrusutil"
-	"k8s.io/test-infra/prow/metrics"
-	"k8s.io/test-infra/prow/pjutil"
 	"k8s.io/test-infra/prow/plank"
 )
 
@@ -94,7 +92,7 @@ func main() {
 
 	defer interrupts.WaitForGracefulShutdown()
 
-	pjutil.ServePProf()
+	//pjutil.ServePProf()
 
 	configAgent := &config.Agent{}
 	if err := configAgent.Start(o.configPath, o.jobConfigPath); err != nil {
@@ -134,7 +132,7 @@ func main() {
 	}
 
 	// Expose prometheus metrics
-	metrics.ExposeMetrics("plank", cfg().PushGateway)
+	//metrics.ExposeMetrics("plank", cfg().PushGateway)
 	// gather metrics for the jobs handled by plank.
 	interrupts.TickLiteral(func() {
 		start := time.Now()
