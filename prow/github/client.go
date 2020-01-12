@@ -1264,6 +1264,17 @@ func (c *client) readPaginatedResultsWithValues(path string, values url.Values, 
 			return fmt.Errorf("failed to parse 'next' link: %v", err)
 		}
 		pagedPath = u.RequestURI()
+
+		// remove prefix (in our case /api/v3 from pagination link
+		// if we don't do this we have /api/v3 twice in our path, e.g.
+		// * https://git.daimler.com/api/v3/repos/c445/t1/pulls/1013/files?per_page=100
+		// * https://git.daimler.com/api/v3/api/v3/repositories/22/pulls/1013/files?per_page=100&page=2
+		baseUrl, err := url.Parse(c.bases[0])
+		if err != nil {
+			return fmt.Errorf("failed to parse base url: %v", err)
+		}
+		baseUrlPrefix := baseUrl.RequestURI()
+		pagedPath = strings.TrimPrefix(pagedPath, baseUrlPrefix)
 	}
 	return nil
 }

@@ -93,7 +93,7 @@ func PathForRefs(baseDir string, refs prowapi.Refs) string {
 	if refs.PathAlias != "" {
 		clonePath = refs.PathAlias
 	} else {
-		clonePath = fmt.Sprintf("github.com/%s/%s", refs.Org, refs.Repo)
+		clonePath = fmt.Sprintf("git.daimler.com/%s/%s", refs.Org, refs.Repo)
 	}
 	return fmt.Sprintf("%s/src/%s", baseDir, clonePath)
 }
@@ -110,7 +110,7 @@ func gitCtxForRefs(refs prowapi.Refs, baseDir string, env []string, oauthToken s
 	g := gitCtx{
 		cloneDir:      PathForRefs(baseDir, refs),
 		env:           env,
-		repositoryURI: fmt.Sprintf("https://github.com/%s/%s.git", refs.Org, refs.Repo),
+		repositoryURI: fmt.Sprintf("git@git.daimler.com:%s/%s.git", refs.Org, refs.Repo),
 	}
 	if refs.CloneURI != "" {
 		g.repositoryURI = refs.CloneURI

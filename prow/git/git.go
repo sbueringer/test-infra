@@ -35,7 +35,7 @@ import (
 	prowgithub "k8s.io/test-infra/prow/github"
 )
 
-const github = "github.com"
+const github = "git.daimler.com"
 
 // Client can clone repos. It keeps a local cache, so successive clones of the
 // same repo should be quick. Create with NewClient. Be sure to clean it up.

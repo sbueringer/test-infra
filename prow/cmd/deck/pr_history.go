@@ -86,11 +86,11 @@ func (a byStarted) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a byStarted) Less(i, j int) bool { return a[i].Started.Before(a[j].Started) }
 
 func githubPRLink(org, repo string, pr int) string {
-	return fmt.Sprintf("https://github.com/%s/%s/pull/%d", org, repo, pr)
+	return fmt.Sprintf("https://git.daimler.com/%s/%s/pull/%d", org, repo, pr)
 }
 
 func githubCommitLink(org, repo, commitHash string) string {
-	return fmt.Sprintf("https://github.com/%s/%s/commit/%s", org, repo, commitHash)
+	return fmt.Sprintf("https://git.daimler.com/%s/%s/commit/%s", org, repo, commitHash)
 }
 
 func jobHistLink(bucketName, jobName string) string {
