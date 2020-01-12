@@ -18,6 +18,9 @@ package ownerslabel
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -30,6 +33,12 @@ import (
 const (
 	// PluginName defines this plugin's registered name.
 	PluginName = "owners-label"
+
+	MentionNotificationName = "MENTIONNOTIFIER"
+)
+
+var (
+	notificationRegex          = regexp.MustCompile(`(?is)^\[` + MentionNotificationName + `\] *?([^\n]*)(?:\n\n(.*))?`)
 )
 
 func init() {
@@ -38,7 +47,7 @@ func init() {
 
 func helpProvider(config *plugins.Configuration, enabledRepos []string) (*pluginhelp.PluginHelp, error) {
 	return &pluginhelp.PluginHelp{
-			Description: "The owners-label plugin automatically adds labels to PRs based on the files they touch. Specifically, the 'labels' sections of OWNERS files are used to determine which labels apply to the changes.",
+			Description: "The owners-label plugin automatically adds labels to PRs based on the files they touch. Specifically, the 'labels' sections of OWNERS files are used to determine which labels apply to the changes. In our fork it also mentions the team if a team label is used. E.g. the label team/core-platform leads to a mention of @c445/core-platform",
 		},
 		nil
 }
@@ -52,6 +61,10 @@ type githubClient interface {
 	GetIssueLabels(org, repo string, number int) ([]github.Label, error)
 	GetRepoLabels(owner, repo string) ([]github.Label, error)
 	GetPullRequestChanges(org, repo string, number int) ([]github.PullRequestChange, error)
+	DeleteComment(org, repo string, ID int) error
+	CreateComment(org, repo string, number int, comment string) error
+	BotName() (string, error)
+	ListIssueComments(org, repo string, number int) ([]github.IssueComment, error)
 }
 
 func handlePullRequest(pc plugins.Agent, pre github.PullRequestEvent) error {
@@ -118,5 +131,117 @@ func handle(ghc githubClient, oc ownersClient, log *logrus.Entry, pre *github.Pu
 	if nonexistent.Len() > 0 {
 		log.Warnf("Unable to add nonexistent labels: %q", nonexistent.List())
 	}
+
+
+	err = updateMentionComment(ghc, log, pre, neededLabels)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func updateMentionComment(ghc githubClient, log *logrus.Entry, pre *github.PullRequestEvent, neededLabels sets.String) error {
+
+	fetchErr := func(context string, err error) error {
+		return fmt.Errorf("failed to get %s for %s#%d: %v", context, pre.Repo.FullName, pre.PullRequest.Number, err)
+	}
+
+	botName, err := ghc.BotName()
+	if err != nil {
+		return fetchErr("bot name", err)
+	}
+	issueComments, err := ghc.ListIssueComments(pre.Repo.Owner.Login, pre.Repo.Name, pre.Number)
+	if err != nil {
+		return fetchErr("issue comments", err)
+	}
+	commentsFromIssueComments := commentsFromIssueComments(issueComments)
+
+	notifications := filterComments(commentsFromIssueComments, notificationMatcher(botName))
+	latestNotification := getLast(notifications)
+	newMessage := updateNotification(neededLabels, pre.Repo.Owner.Login, latestNotification)
+	if newMessage != nil {
+		for _, notif := range notifications {
+			if err := ghc.DeleteComment(pre.Repo.Owner.Login, pre.Repo.Name, notif.ID); err != nil {
+				log.WithError(err).Errorf("Failed to delete comment from %s/%s#%d, ID: %d.", pre.Repo.Owner.Login, pre.Repo.Name, pre.Number, notif.ID)
+			}
+		}
+		if err := ghc.CreateComment(pre.Repo.Owner.Login, pre.Repo.Name, pre.Number, *newMessage); err != nil {
+			log.WithError(err).Errorf("Failed to create comment on %s/%s#%d: %q.", pre.Repo.Owner.Login, pre.Repo.Name, pre.Number, *newMessage)
+		}
+	}
+	return nil
+}
+
+
+func updateNotification(neededLabels sets.String, org string, latestNotification *comment) *string {
+	var teams []string
+	for _, label := range neededLabels.List() {
+		if strings.HasPrefix(label, "team/") {
+			teams = append(teams, fmt.Sprintf("@%s/%s",org, strings.TrimPrefix(label, "team/")))
+
+		}
+	}
+	message := fmt.Sprintf("[%s]: Please take a look: %s", MentionNotificationName, strings.Join(teams, " "))
+	if latestNotification != nil && strings.Contains(latestNotification.Body, message) {
+		return nil
+	}
+	return &message
+}
+
+func notificationMatcher(botName string) func(*comment) bool {
+	return func(c *comment) bool {
+		if c.Author != botName {
+			return false
+		}
+		match := notificationRegex.FindStringSubmatch(c.Body)
+		return len(match) > 0
+	}
+}
+
+type comment struct {
+	Body        string
+	Author      string
+	CreatedAt   time.Time
+	HTMLURL     string
+	ID          int
+	ReviewState github.ReviewState
+}
+
+func commentFromIssueComment(ic *github.IssueComment) *comment {
+	if ic == nil {
+		return nil
+	}
+	return &comment{
+		Body:      ic.Body,
+		Author:    ic.User.Login,
+		CreatedAt: ic.CreatedAt,
+		HTMLURL:   ic.HTMLURL,
+		ID:        ic.ID,
+	}
+}
+
+func commentsFromIssueComments(ics []github.IssueComment) []*comment {
+	comments := make([]*comment, 0, len(ics))
+	for i := range ics {
+		comments = append(comments, commentFromIssueComment(&ics[i]))
+	}
+	return comments
+}
+
+func filterComments(comments []*comment, filter func(*comment) bool) []*comment {
+	filtered := make([]*comment, 0, len(comments))
+	for _, c := range comments {
+		if filter(c) {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered
+}
+
+func getLast(cs []*comment) *comment {
+	if len(cs) == 0 {
+		return nil
+	}
+	return cs[len(cs)-1]
 }
