@@ -75,7 +75,7 @@ func (o *Options) Validate() error {
 	}
 
 	if !o.DryRun {
-		if o.Bucket == "" {
+		if o.Bucket == "" && o.Path == "" {
 			return errors.New("GCS upload was requested no GCS bucket was provided")
 		}
 

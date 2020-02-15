@@ -17,8 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
+	"k8s.io/test-infra/pkg/io/v2/providers"
 	"net/url"
 	"path"
 	"regexp"
@@ -27,7 +30,6 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/sets"
 	v1 "k8s.io/test-infra/prow/apis/prowjobs/v1"
@@ -93,8 +95,8 @@ func githubCommitLink(org, repo, commitHash string) string {
 	return fmt.Sprintf("https://github.com/%s/%s/commit/%s", org, repo, commitHash)
 }
 
-func jobHistLink(bucketName, jobName string) string {
-	return fmt.Sprintf("/job-history/%s/pr-logs/directory/%s", bucketName, jobName)
+func jobHistLink(storagePath, jobName string) string {
+	return fmt.Sprintf("/job-history/%s/pr-logs/directory/%s", providers.EncodeStorageURL(storagePath), jobName)
 }
 
 // gets the pull commit hash from metadata
@@ -108,12 +110,12 @@ func getPullCommitHash(pull string) (string, error) {
 }
 
 // listJobBuilds concurrently lists builds for the given job prefixes that have been run on a PR
-func listJobBuilds(bucket storageBucket, jobPrefixes []string) []jobBuilds {
+func listJobBuilds(opener iov2.Opener, jobPrefixes []string) []jobBuilds {
 	jobch := make(chan jobBuilds)
 	defer close(jobch)
 	for i, jobPrefix := range jobPrefixes {
 		go func(i int, jobPrefix string) {
-			buildPrefixes, err := bucket.listSubDirs(jobPrefix)
+			buildPrefixes, err := opener.ListSubDirs(context.TODO(), jobPrefix)
 			if err != nil {
 				logrus.WithError(err).Warningf("Error getting builds for job %s", jobPrefix)
 			}
@@ -132,19 +134,19 @@ func listJobBuilds(bucket storageBucket, jobPrefixes []string) []jobBuilds {
 }
 
 // getPRBuildData concurrently fetches metadata on each build of each job run on a PR
-func getPRBuildData(bucket storageBucket, jobs []jobBuilds) []buildData {
+func getPRBuildData(opener iov2.Opener, jobs []jobBuilds) []buildData {
 	buildch := make(chan buildData)
 	defer close(buildch)
 	expected := 0
 	for _, job := range jobs {
 		for j, buildPrefix := range job.buildPrefixes {
 			go func(j int, jobName, buildPrefix string) {
-				build, err := getBuildData(bucket, buildPrefix)
+				build, err := getBuildData(opener, buildPrefix)
 				if err != nil {
 					logrus.WithError(err).Warningf("build %s information incomplete", buildPrefix)
 				}
 				split := strings.Split(strings.TrimSuffix(buildPrefix, "/"), "/")
-				build.SpyglassLink = path.Join(spyglassPrefix, bucket.getName(), buildPrefix)
+				build.SpyglassLink = path.Join(spyglassPrefix, providers.EncodeStorageURL(buildPrefix))
 				build.ID = split[len(split)-1]
 				build.jobName = jobName
 				build.prefix = buildPrefix
@@ -239,16 +241,16 @@ func getGCSDirsForPR(c *config.Config, gitHubClient deckGitHubClient, gitClient 
 				},
 			},
 		}, "")
-		gcsPath, _ = path.Split(path.Clean(gcsPath))
-		if _, ok := toSearch[gcsConfig.Bucket]; !ok {
-			toSearch[gcsConfig.Bucket] = sets.String{}
+		gcsPath, _ = path.Split(gcsPath)
+		if _, ok := toSearch[gcsConfig.Path]; !ok {
+			toSearch[gcsConfig.Path] = sets.String{}
 		}
-		toSearch[gcsConfig.Bucket].Insert(gcsPath)
+		toSearch[gcsConfig.Path].Insert(gcsPath)
 	}
 	return toSearch, nil
 }
 
-func getPRHistory(url *url.URL, config *config.Config, gcsClient *storage.Client, gitHubClient deckGitHubClient, gitClient git.ClientFactory) (prHistoryTemplate, error) {
+func getPRHistory(url *url.URL, config *config.Config, opener iov2.Opener, gitHubClient deckGitHubClient, gitClient git.ClientFactory) (prHistoryTemplate, error) {
 	start := time.Now()
 	template := prHistoryTemplate{}
 
@@ -268,10 +270,9 @@ func getPRHistory(url *url.URL, config *config.Config, gcsClient *storage.Client
 	// job name -> commit hash -> list of builds
 	jobCommitBuilds := make(map[string]map[string][]buildData)
 
-	for bucketName, gcsPaths := range toSearch {
-		bucket := gcsBucket{bucketName, gcsClient.Bucket(bucketName)}
+	for storagePath, gcsPaths := range toSearch {
 		for gcsPath := range gcsPaths {
-			jobPrefixes, err := bucket.listSubDirs(gcsPath)
+			jobPrefixes, err := opener.ListSubDirs(context.TODO(), gcsPath)
 			if err != nil {
 				return template, fmt.Errorf("failed to get job names: %v", err)
 			}
@@ -280,13 +281,13 @@ func getPRHistory(url *url.URL, config *config.Config, gcsClient *storage.Client
 				jobName := path.Base(jobPrefix)
 				jobData := prJobData{
 					Name: jobName,
-					Link: jobHistLink(bucketName, jobName),
+					Link: jobHistLink(storagePath, jobName),
 				}
 				template.Jobs = append(template.Jobs, jobData)
 				jobCommitBuilds[jobName] = make(map[string][]buildData)
 			}
-			jobs := listJobBuilds(bucket, jobPrefixes)
-			builds = append(builds, getPRBuildData(bucket, jobs)...)
+			jobs := listJobBuilds(opener, jobPrefixes)
+			builds = append(builds, getPRBuildData(opener, jobs)...)
 		}
 	}
 

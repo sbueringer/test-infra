@@ -19,10 +19,10 @@ package spyglass
 import (
 	"context"
 	"fmt"
+	"gocloud.dev/blob"
 	"io"
 	"io/ioutil"
 
-	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/test-infra/prow/spyglass/lenses"
@@ -48,7 +48,7 @@ type GCSArtifact struct {
 }
 
 type artifactHandle interface {
-	Attrs(ctx context.Context) (*storage.ObjectAttrs, error)
+	Attrs(ctx context.Context) (*blob.Attributes, error)
 	NewRangeReader(ctx context.Context, offset, length int64) (io.ReadCloser, error)
 	NewReader(ctx context.Context) (io.ReadCloser, error)
 }

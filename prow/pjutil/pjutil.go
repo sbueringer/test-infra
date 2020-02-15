@@ -20,6 +20,7 @@ package pjutil
 import (
 	"bytes"
 	"fmt"
+	"k8s.io/test-infra/pkg/io/v2/providers"
 	"net/url"
 	"path"
 
@@ -274,7 +275,7 @@ func JobURL(plank config.Plank, pj prowapi.ProwJob, log *logrus.Entry) string {
 		_, gcsPath, _ := gcsupload.PathsForJob(gcsConfig, &spec, "")
 
 		prefix, _ := url.Parse(plank.GetJobURLPrefix(pj.Spec.Refs))
-		prefix.Path = path.Join(prefix.Path, gcsConfig.Bucket, gcsPath)
+		prefix.Path = path.Join(prefix.Path, providers.EncodeStorageURL(gcsPath))
 		return prefix.String()
 	}
 	var b bytes.Buffer

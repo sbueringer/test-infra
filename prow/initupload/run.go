@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"reflect"
 	"strconv"
 	"time"
@@ -82,7 +83,7 @@ func (o Options) Run() error {
 		return fmt.Errorf("could not resolve job spec: %v", err)
 	}
 
-	uploadTargets := map[string]gcs.UploadFunc{}
+	uploadTargets := map[string]iov2.UploadFunc{}
 
 	var failed bool
 	var cloneRecords []clone.Record
@@ -99,7 +100,7 @@ func (o Options) Run() error {
 		return fmt.Errorf("could not marshal starting data: %v", err)
 	}
 
-	uploadTargets["started.json"] = gcs.DataUpload(bytes.NewReader(startedData))
+	uploadTargets["started.json"] = iov2.DataUpload(bytes.NewReader(startedData), nil)
 
 	if err := o.Options.Run(spec, uploadTargets); err != nil {
 		return fmt.Errorf("failed to upload to GCS: %v", err)
@@ -117,7 +118,7 @@ func (o Options) Run() error {
 // returns: bool - clone status
 //          []Record - containing final SHA on successful clones
 //          error - when unexpected file operation happens
-func processCloneLog(logfile string, uploadTargets map[string]gcs.UploadFunc) (bool, []clone.Record, error) {
+func processCloneLog(logfile string, uploadTargets map[string]iov2.UploadFunc) (bool, []clone.Record, error) {
 	var cloneRecords []clone.Record
 	data, err := ioutil.ReadFile(logfile)
 	if err != nil {
@@ -135,11 +136,12 @@ func processCloneLog(logfile string, uploadTargets map[string]gcs.UploadFunc) (b
 		failed = failed || record.Failed
 
 	}
-	uploadTargets["clone-log.txt"] = gcs.DataUpload(bytes.NewReader(cloneLog.Bytes()))
-	uploadTargets["clone-records.json"] = gcs.FileUpload(logfile)
+	uploadTargets["clone-log.txt"] = iov2.DataUpload(bytes.NewReader(cloneLog.Bytes()), nil)
+	uploadTargets["clone-log.txt"] = iov2.DataUpload(bytes.NewReader(cloneLog.Bytes()), nil)
+	uploadTargets["clone-records.json"] = iov2.FileUpload(logfile, nil)
 
 	if failed {
-		uploadTargets["build-log.txt"] = gcs.DataUpload(bytes.NewReader(cloneLog.Bytes()))
+		uploadTargets["build-log.txt"] = iov2.DataUpload(bytes.NewReader(cloneLog.Bytes()), nil)
 
 		passed := !failed
 		now := time.Now().Unix()
@@ -152,7 +154,7 @@ func processCloneLog(logfile string, uploadTargets map[string]gcs.UploadFunc) (b
 		if err != nil {
 			return true, cloneRecords, fmt.Errorf("could not marshal finishing data: %v", err)
 		}
-		uploadTargets["finished.json"] = gcs.DataUpload(bytes.NewReader(finishedData))
+		uploadTargets["finished.json"] = iov2.DataUpload(bytes.NewReader(finishedData), nil)
 	}
 	return failed, cloneRecords, nil
 }

@@ -20,6 +20,7 @@ go_library(
     ],
     importpath = "k8s.io/test-infra/prow/pjutil",
     deps = [
+        "//pkg/io/v2/providers:go_default_library",
         "//prow/apis/prowjobs/v1:go_default_library",
         "//prow/config:go_default_library",
         "//prow/crier/reporters/github:go_default_library",

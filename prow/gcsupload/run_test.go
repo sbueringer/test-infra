@@ -18,6 +18,7 @@ package gcsupload
 
 import (
 	"io/ioutil"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"os"
 	"path"
 	"reflect"
@@ -29,7 +30,6 @@ import (
 
 	prowapi "k8s.io/test-infra/prow/apis/prowjobs/v1"
 	"k8s.io/test-infra/prow/pod-utils/downwardapi"
-	"k8s.io/test-infra/prow/pod-utils/gcs"
 )
 
 func TestOptions_AssembleTargets(t *testing.T) {
@@ -38,7 +38,7 @@ func TestOptions_AssembleTargets(t *testing.T) {
 		jobType  prowapi.ProwJobType
 		options  Options
 		paths    []string
-		extra    map[string]gcs.UploadFunc
+		extra    map[string]iov2.UploadFunc
 		expected []string
 	}{
 		{
@@ -104,9 +104,9 @@ func TestOptions_AssembleTargets(t *testing.T) {
 					Bucket:       "bucket",
 				},
 			},
-			extra: map[string]gcs.UploadFunc{
-				"something": gcs.DataUpload(strings.NewReader("data")),
-				"else":      gcs.DataUpload(strings.NewReader("data")),
+			extra: map[string]iov2.UploadFunc{
+				"something": iov2.DataUpload(strings.NewReader("data"), nil),
+				"else":      iov2.DataUpload(strings.NewReader("data"), nil),
 			},
 			expected: []string{
 				"pr-logs/pull/org_repo/1/job/build/something",

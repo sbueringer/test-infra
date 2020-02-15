@@ -18,6 +18,7 @@ package spyglass
 
 import (
 	"fmt"
+	"k8s.io/test-infra/pkg/io/v2/providers"
 	"strings"
 	"time"
 
@@ -32,10 +33,10 @@ func (s *Spyglass) ListArtifacts(src string) ([]string, error) {
 		return []string{}, fmt.Errorf("error parsing src: %v", err)
 	}
 	gcsKey := ""
-	switch keyType {
-	case gcsKeyType:
-		gcsKey = key
-	case prowKeyType:
+	switch  {
+	case providers.PathHasStorageProviderPrefix(src):
+		gcsKey = src
+	case keyType == prowKeyType:
 		if gcsKey, err = s.prowToGCS(key); err != nil {
 			logrus.Warningf("Failed to get gcs source for prow job: %v", err)
 		}
@@ -103,10 +104,10 @@ func (s *Spyglass) FetchArtifacts(src string, podName string, sizeLimit int64, a
 		return arts, fmt.Errorf("could not derive job: %v", err)
 	}
 	gcsKey := ""
-	switch keyType {
-	case gcsKeyType:
-		gcsKey = strings.TrimSuffix(key, "/")
-	case prowKeyType:
+	switch  {
+	case providers.PathHasStorageProviderPrefix(src):
+		gcsKey = strings.TrimSuffix(src, "/")
+	case keyType == prowKeyType:
 		if gcsKey, err = s.prowToGCS(key); err != nil {
 			logrus.Warningln(err)
 		}

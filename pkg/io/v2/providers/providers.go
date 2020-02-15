@@ -42,6 +42,9 @@ const (
 	defaultStorageProviderName = "file"
 
 	storageSeparator = "://"
+	urlSeparator     = "/"
+
+	httpsScheme = "https"
 
 	providerFile = "file"
 	providerGS   = "gs"
@@ -161,6 +164,29 @@ func getS3Bucket(ctx context.Context, creds []byte, bucketName string) (*blob.Bu
 	return bkt, nil
 }
 
+func SignedURL(ctx context.Context, credentials []byte, storagePath string, opts *blob.SignedURLOptions) (string, error) {
+	storageProvider, bucketName, relativePath, err := ParseStoragePath(storagePath)
+	if err != nil {
+		return "", err
+	}
+
+	if storageProvider == providerGS && len(credentials) == 0 {
+		artifactLink := &url.URL{
+			Scheme: httpsScheme,
+			Host:   "storage.googleapis.com",
+			Path:   path.Join(bucketName, relativePath),
+		}
+		return artifactLink.String(), nil
+	}
+
+	bucket, err := GetBucket(ctx, credentials, storagePath)
+	if err != nil {
+		return "", err
+	}
+	defer bucket.Close()
+	return bucket.SignedURL(ctx, relativePath, opts)
+}
+
 // ParseStoragePath parses storagePath and returns the storageProvider, bucket and relativePath
 // For example gs://prow-artifacts/test.log results in (gs, prow-artifacts, test.log)
 // Currently detected storageProviders are GS, S3 and file.
@@ -195,4 +221,50 @@ func ParseStoragePath(storagePath string) (storageProvider, bucket, relativePath
 		return "", "", "", fmt.Errorf("could not find bucket in storagePath %q", storagePath)
 	}
 	return storageProvider, bucket, relativePath, nil
+}
+
+func PathHasStorageProviderPrefix(storagePath string) bool {
+	for _, spName := range storageProviders {
+		if strings.HasPrefix(storagePath, spName+storageSeparator) {
+			return true
+		}
+	}
+	return false
+}
+
+func URLHasStorageProviderPrefix(url string) bool {
+	if strings.HasPrefix(url, "gcs://") {
+		url = strings.Replace(url, "gcs://", "gs://", 1)
+	}
+	for _, spName := range storageProviders {
+		if strings.HasPrefix(url, spName+urlSeparator) {
+			return true
+		}
+	}
+	return false
+}
+
+// EncodeStorageURL encodes storage path to URL,
+// e.g.: s3://prow-artifacts => s3/prow-artifacts
+func EncodeStorageURL(storagePath string) string {
+	for _, spName := range storageProviders {
+		if strings.HasPrefix(storagePath, spName+storageSeparator) {
+			return strings.Replace(storagePath, spName+storageSeparator, spName+urlSeparator, 1)
+		}
+	}
+	return storagePath
+}
+
+// DecodeStorageURL decodes storage URL to path,
+// e.g.: s3/prow-artifacts => s3://prow-artifacts
+func DecodeStorageURL(url string) string {
+	if strings.HasPrefix(url, "gcs/") {
+		url = strings.Replace(url, "gcs/", "gs/", 1)
+	}
+	for _, spName := range storageProviders {
+		if strings.HasPrefix(url, spName+urlSeparator) {
+			return strings.Replace(url, spName+urlSeparator, spName+storageSeparator, 1)
+		}
+	}
+	return url
 }

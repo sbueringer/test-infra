@@ -19,6 +19,7 @@ package artifact_uploader
 import (
 	"bytes"
 	"fmt"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"path"
 	"time"
 
@@ -36,7 +37,6 @@ import (
 	"k8s.io/test-infra/prow/gcsupload"
 	"k8s.io/test-infra/prow/kube"
 	"k8s.io/test-infra/prow/pod-utils/downwardapi"
-	"k8s.io/test-infra/prow/pod-utils/gcs"
 )
 
 const (
@@ -174,8 +174,8 @@ func (c *Controller) processNextItem() bool {
 	} else {
 		target = path.Join(ContainerLogDir, workItem.podName, fmt.Sprintf("%s.txt", workItem.containerName))
 	}
-	data := gcs.DataUpload(bytes.NewReader(log))
-	if err := c.gcsConfig.Run(&spec, map[string]gcs.UploadFunc{target: data}); err != nil {
+	data := iov2.DataUpload(bytes.NewReader(log), nil)
+	if err := c.gcsConfig.Run(&spec, map[string]iov2.UploadFunc{target: data}); err != nil {
 		c.handleErr(err, workItem)
 		return true
 	}
