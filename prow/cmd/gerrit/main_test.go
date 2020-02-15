@@ -22,7 +22,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"gocloud.dev/blob"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -30,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	"gocloud.dev/blob"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/test-infra/pkg/io"
 	"k8s.io/test-infra/prow/gerrit/client"

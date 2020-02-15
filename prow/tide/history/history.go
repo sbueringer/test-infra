@@ -22,7 +22,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gocloud.dev/blob"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -30,6 +29,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"gocloud.dev/blob"
 
 	"k8s.io/test-infra/pkg/io"
 	prowapi "k8s.io/test-infra/prow/apis/prowjobs/v1"

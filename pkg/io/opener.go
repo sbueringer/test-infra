@@ -17,19 +17,21 @@ limitations under the License.
 package io
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"gocloud.dev/blob"
-	"gocloud.dev/gcerrors"
 	"io"
 	"io/ioutil"
-	"k8s.io/test-infra/pkg/io/providers"
-	"k8s.io/test-infra/prow/errorutil"
 	"os"
 	"strings"
 	"sync"
+
+	"cloud.google.com/go/storage"
+	"github.com/sirupsen/logrus"
+	"gocloud.dev/blob"
+	"gocloud.dev/gcerrors"
+
+	"k8s.io/test-infra/pkg/io/providers"
+	"k8s.io/test-infra/prow/errorutil"
 )
 
 // Aliases to types in the standard library

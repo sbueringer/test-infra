@@ -17,17 +17,19 @@ limitations under the License.
 package gcs
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
+	"net/url"
+	"path"
+
+	"cloud.google.com/go/storage"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/gcp"
 	"golang.org/x/oauth2/google"
+
 	"k8s.io/test-infra/pkg/io/providers"
 	"k8s.io/test-infra/pkg/io/providers/util"
-	"net/url"
-	"path"
 )
 
 const (

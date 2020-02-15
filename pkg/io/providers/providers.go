@@ -18,8 +18,9 @@ package providers
 
 import (
 	"context"
-	"gocloud.dev/blob"
 	"strings"
+
+	"gocloud.dev/blob"
 )
 
 const (

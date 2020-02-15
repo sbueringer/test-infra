@@ -20,11 +20,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/s3blob"
+
 	"k8s.io/test-infra/pkg/io/providers"
 	"k8s.io/test-infra/pkg/io/providers/util"
 )

@@ -21,12 +21,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gocloud.dev/blob"
 	"io"
 	"reflect"
 	"testing"
 	"time"
 
+	"gocloud.dev/blob"
 	"k8s.io/apimachinery/pkg/util/diff"
 	prowio "k8s.io/test-infra/pkg/io"
 

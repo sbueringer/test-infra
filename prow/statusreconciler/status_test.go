@@ -18,7 +18,6 @@ package statusreconciler
 
 import (
 	"context"
-	"gocloud.dev/blob"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -27,6 +26,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"gocloud.dev/blob"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/test-infra/pkg/io"
 	"k8s.io/test-infra/prow/config"

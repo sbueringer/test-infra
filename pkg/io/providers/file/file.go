@@ -19,11 +19,13 @@ package file
 import (
 	"context"
 	"fmt"
-	"gocloud.dev/blob"
-	"gocloud.dev/blob/fileblob"
-	"k8s.io/test-infra/pkg/io/providers"
 	"path"
 	"strings"
+
+	"gocloud.dev/blob"
+	"gocloud.dev/blob/fileblob"
+
+	"k8s.io/test-infra/pkg/io/providers"
 )
 
 var (
