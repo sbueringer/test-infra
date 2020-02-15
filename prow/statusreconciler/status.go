@@ -18,6 +18,7 @@ package statusreconciler
 
 import (
 	"context"
+	"gocloud.dev/blob"
 	"io/ioutil"
 	"time"
 
@@ -37,9 +38,14 @@ type statusClient interface {
 	Save() error
 }
 
+type Opener interface {
+	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error)
+	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error)
+}
+
 type statusController struct {
 	logger        *logrus.Entry
-	opener        io.Opener
+	opener        Opener
 	statusURI     string
 	configPath    string
 	jobConfigPath string
@@ -77,7 +83,7 @@ func (s *statusController) Save() error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	writer, err := s.opener.Writer(ctx, s.statusURI)
+	writer, err := s.opener.Writer(ctx, s.statusURI, nil)
 	if err != nil {
 		entry.WithError(err).Warn("Cannot open state writer")
 		return err
@@ -103,7 +109,7 @@ func (s *statusController) loadState() (storedState, error) {
 	entry := s.logger.WithField("path", s.statusURI)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	reader, err := s.opener.Reader(ctx, s.statusURI)
+	reader, err := s.opener.Reader(ctx, s.statusURI, nil)
 	if err != nil {
 		entry.WithError(err).Warn("Cannot open stored state")
 		return state, err

@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gocloud.dev/blob"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -49,8 +50,13 @@ type History struct {
 	path   string
 }
 
-func readHistory(maxRecordsPerKey int, opener io.Opener, path string) (map[string]*recordLog, error) {
-	reader, err := opener.Reader(context.Background(), path)
+type Opener interface {
+	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error)
+	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error)
+}
+
+func readHistory(maxRecordsPerKey int, opener Opener, path string) (map[string]*recordLog, error) {
+	reader, err := opener.Reader(context.Background(), path, nil)
 	if io.IsNotExist(err) { // No history exists yet. This is not an error.
 		return map[string]*recordLog{}, nil
 	}
@@ -82,13 +88,13 @@ func readHistory(maxRecordsPerKey int, opener io.Opener, path string) (map[strin
 	return logsByPool, nil
 }
 
-func writeHistory(opener io.Opener, path string, hist map[string][]*Record) error {
+func writeHistory(opener Opener, path string, hist map[string][]*Record) error {
 	// a write's duration will scale with the volume of data to write but large
 	// data sets can finish in about 500ms; a timeout of 30s should not evict
 	// well-behaved writes
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	writer, err := opener.Writer(ctx, path)
+	writer, err := opener.Writer(ctx, path, nil)
 	if err != nil {
 		return fmt.Errorf("open: %v", err)
 	}

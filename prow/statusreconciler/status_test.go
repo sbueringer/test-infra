@@ -18,6 +18,7 @@ package statusreconciler
 
 import (
 	"context"
+	"gocloud.dev/blob"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -34,11 +35,11 @@ import (
 
 type testOpener struct{}
 
-func (t *testOpener) Reader(ctx context.Context, path string) (io.ReadCloser, error) {
+func (t *testOpener) Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error) {
 	return os.Open(path)
 }
 
-func (t *testOpener) Writer(ctx context.Context, path string) (io.WriteCloser, error) {
+func (t *testOpener) Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error) {
 	return os.Create(path)
 }
 

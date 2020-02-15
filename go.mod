@@ -18,9 +18,8 @@ replace (
 
 require (
 	cloud.google.com/go v0.47.0
-	github.com/Azure/azure-pipeline-go v0.1.9 // indirect
 	github.com/Azure/azure-sdk-for-go v38.0.0+incompatible
-	github.com/Azure/azure-storage-blob-go v0.0.0-20190123011202-457680cc0804
+	github.com/Azure/azure-storage-blob-go v0.8.0
 	github.com/Azure/go-autorest/autorest v0.9.5
 	github.com/Azure/go-autorest/autorest/adal v0.8.2
 	github.com/GoogleCloudPlatform/testgrid v0.0.1-alpha.4
@@ -44,7 +43,6 @@ require (
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/spec v0.19.6
 	github.com/go-openapi/swag v0.19.7 // indirect
-	github.com/go-sql-driver/mysql v0.0.0-20160411075031-7ebe0a500653 // indirect
 	github.com/go-test/deep v1.0.4
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/mock v1.3.1
@@ -68,7 +66,6 @@ require (
 	github.com/klauspost/compress v1.4.1 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/pgzip v1.2.1
-	github.com/lib/pq v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mattn/go-sqlite3 v0.0.0-20160514122348-38ee283dabf1 // indirect
 	github.com/mattn/go-zglob v0.0.1
@@ -88,6 +85,7 @@ require (
 	github.com/spf13/viper v1.3.2
 	github.com/tektoncd/pipeline v0.10.1
 	go.opencensus.io v0.22.3 // indirect
+	gocloud.dev v0.19.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f
 	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914

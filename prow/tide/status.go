@@ -426,7 +426,7 @@ func (sc *statusController) load() {
 		return
 	}
 	entry := sc.logger.WithField("path", sc.path)
-	reader, err := sc.opener.Reader(context.Background(), sc.path)
+	reader, err := sc.opener.Reader(context.Background(), sc.path, nil)
 	if err != nil {
 		entry.WithError(err).Warn("Cannot open stored state")
 		return
@@ -459,7 +459,7 @@ func (sc *statusController) save(ticker *time.Ticker) {
 			entry.WithError(err).Warn("Cannot marshal state")
 			continue
 		}
-		writer, err := sc.opener.Writer(context.Background(), sc.path)
+		writer, err := sc.opener.Writer(context.Background(), sc.path, nil)
 		if err != nil {
 			entry.WithError(err).Warn("Cannot open state writer")
 			continue

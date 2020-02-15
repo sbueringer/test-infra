@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
+	"gocloud.dev/blob"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -28,7 +30,6 @@ import (
 	"testing"
 	"time"
 
-	"cloud.google.com/go/storage"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/test-infra/pkg/io"
 	"k8s.io/test-infra/prow/gerrit/client"
@@ -36,11 +37,11 @@ import (
 
 type fakeOpener struct{}
 
-func (o fakeOpener) Reader(ctx context.Context, path string) (io.ReadCloser, error) {
-	return nil, storage.ErrObjectNotExist
+func (o fakeOpener) Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error) {
+	return nil, io.ErrNotFoundTest
 }
 
-func (o fakeOpener) Writer(ctx context.Context, path string) (io.WriteCloser, error) {
+func (o fakeOpener) Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error) {
 	return nil, errors.New("do not call Writer")
 }
 
@@ -141,7 +142,7 @@ func TestSyncTime(t *testing.T) {
 	}
 
 	st := syncTime{
-		path:   path,
+		path:   fmt.Sprintf("file://%s", path),
 		opener: open,
 		ctx:    ctx,
 	}
@@ -174,7 +175,7 @@ func TestSyncTime(t *testing.T) {
 
 	expected := later
 	st = syncTime{
-		path:   path,
+		path:   fmt.Sprintf("file://%s", path),
 		opener: open,
 		ctx:    ctx,
 	}
@@ -186,7 +187,7 @@ func TestSyncTime(t *testing.T) {
 	}
 
 	st = syncTime{
-		path:   path,
+		path:   fmt.Sprintf("file://%s", path),
 		opener: fakeOpener{}, // return storage.ErrObjectNotExist on open
 		ctx:    ctx,
 	}
@@ -220,7 +221,7 @@ func TestNewProjectAddition(t *testing.T) {
 	testProjectsFlag := client.ProjectsFlag{"foo": []string{"bar"}, "qwe": []string{"qux"}}
 
 	st := syncTime{
-		path:   path,
+		path:   fmt.Sprintf("file://%s", path),
 		opener: open,
 		ctx:    ctx,
 	}

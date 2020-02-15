@@ -21,13 +21,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gocloud.dev/blob"
 	"io"
 	"reflect"
 	"testing"
 	"time"
 
-	"cloud.google.com/go/storage"
 	"k8s.io/apimachinery/pkg/util/diff"
+	prowio "k8s.io/test-infra/pkg/io"
 
 	prowapi "k8s.io/test-infra/prow/apis/prowjobs/v1"
 )
@@ -137,9 +138,9 @@ type testOpener struct {
 	dne     bool
 }
 
-func (t *testOpener) Reader(ctx context.Context, path string) (io.ReadCloser, error) {
+func (t *testOpener) Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error) {
 	if t.dne {
-		return nil, storage.ErrObjectNotExist
+		return nil, prowio.ErrNotFoundTest
 	}
 	if path != fakePath {
 		return nil, fmt.Errorf("path %q != expected %q", path, fakePath)
@@ -147,7 +148,7 @@ func (t *testOpener) Reader(ctx context.Context, path string) (io.ReadCloser, er
 	return t, nil
 }
 
-func (t *testOpener) Writer(ctx context.Context, path string) (io.WriteCloser, error) {
+func (t *testOpener) Writer(ctx context.Context, path string, options *blob.WriterOptions) (io.WriteCloser, error) {
 	if path != fakePath {
 		return nil, fmt.Errorf("path %q != expected %q", path, fakePath)
 	}

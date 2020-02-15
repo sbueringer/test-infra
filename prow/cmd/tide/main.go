@@ -38,6 +38,9 @@ import (
 	"k8s.io/test-infra/prow/metrics"
 	"k8s.io/test-infra/prow/pjutil"
 	"k8s.io/test-infra/prow/tide"
+
+	// Import storage providers
+	_ "k8s.io/test-infra/pkg/io/provider-imports"
 )
 
 type options struct {

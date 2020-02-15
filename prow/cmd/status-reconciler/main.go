@@ -35,6 +35,9 @@ import (
 	"k8s.io/test-infra/prow/pjutil"
 	"k8s.io/test-infra/prow/plugins"
 	"k8s.io/test-infra/prow/statusreconciler"
+
+	// Import storage providers
+	_ "k8s.io/test-infra/pkg/io/provider-imports"
 )
 
 const (

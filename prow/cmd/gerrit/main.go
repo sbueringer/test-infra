@@ -22,6 +22,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"gocloud.dev/blob"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -38,6 +39,9 @@ import (
 	"k8s.io/test-infra/prow/interrupts"
 	"k8s.io/test-infra/prow/logrusutil"
 	"k8s.io/test-infra/prow/pjutil"
+
+	// Import storage providers
+	_ "k8s.io/test-infra/pkg/io/provider-imports"
 )
 
 type options struct {
@@ -89,11 +93,16 @@ func gatherOptions(fs *flag.FlagSet, args ...string) options {
 	return o
 }
 
+type Opener interface {
+	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error)
+	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error)
+}
+
 type syncTime struct {
 	val    client.LastSyncState
 	lock   sync.RWMutex
 	path   string
-	opener io.Opener
+	opener Opener
 	ctx    context.Context
 }
 
@@ -143,7 +152,7 @@ func (st *syncTime) init(hostProjects client.ProjectsFlag) error {
 }
 
 func (st *syncTime) currentState() (client.LastSyncState, error) {
-	r, err := st.opener.Reader(st.ctx, st.path)
+	r, err := st.opener.Reader(st.ctx, st.path, nil)
 	if io.IsNotExist(err) {
 		logrus.Warnf("lastSyncFallback not found at %q", st.path)
 		return nil, nil
@@ -194,7 +203,7 @@ func (st *syncTime) Update(newState client.LastSyncState) error {
 		return nil
 	}
 
-	w, err := st.opener.Writer(st.ctx, st.path)
+	w, err := st.opener.Writer(st.ctx, st.path, nil)
 	if err != nil {
 		return fmt.Errorf("open for write %q: %v", st.path, err)
 	}
