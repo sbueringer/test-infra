@@ -58,6 +58,8 @@ type Opener interface {
 	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error)
 	Upload(ctx context.Context, uploads map[string]UploadFunc) error
 
+	ParseStoragePath(path string) (bucket, relativePath string, err error)
+
 	// Workaround to retrieve the storageClient for prow/spyglass/testgrid.go because it calls
 	// github.com/GoogleCloudPlatform/testgrid/config.Read() which only works with GCS storage client right now
 	GetGCSClient(ctx context.Context) (*storage.Client, error)
@@ -341,6 +343,18 @@ func convertAttributesToWriterOptions(a *blob.Attributes) *blob.WriterOptions {
 		ContentMD5:         a.MD5,
 		Metadata:           a.Metadata,
 	}
+}
+
+func (o *opener) ParseStoragePath(path string) (bucket, relativePath string, err error) {
+	sp, err := providers.GetStorageProvider(o.credentials, path)
+	if err != nil {
+		return "", "", fmt.Errorf("could not get bucket: %w", err)
+	}
+	bucket, relativePath, err = sp.ParseStoragePath(path)
+	if err != nil {
+		return "", "", fmt.Errorf("could not get bucket: %w", err)
+	}
+	return bucket, relativePath, nil
 }
 
 func (o *opener) GetGCSClient(ctx context.Context) (*storage.Client, error) {
