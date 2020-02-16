@@ -98,7 +98,7 @@ func (o *opener) Reader(ctx context.Context, path string, opts *blob.ReaderOptio
 	}
 	reader, err := bucket.NewReader(ctx, relativePath, opts)
 	if err != nil {
-       		return nil, err
+		return nil, err
 	}
 	return readerCloser{reader, bucket}, nil
 }
@@ -345,7 +345,7 @@ func IsNotExist(err error) bool {
 	if err == ErrNotFoundTest {
 		return true
 	}
- 	return gcerrors.Code(err) == gcerrors.NotFound
+	return gcerrors.Code(err) == gcerrors.NotFound
 }
 
 // LogClose will attempt a close an log any error

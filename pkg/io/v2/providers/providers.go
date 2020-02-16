@@ -17,23 +17,23 @@ limitations under the License.
 package providers
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"path"
+	"strings"
+
+	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/fileblob"
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"
 	"golang.org/x/oauth2/google"
-	"net/url"
-	"path"
-	"strings"
-
-	"gocloud.dev/blob"
 )
 
 const (
