@@ -31,7 +31,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gocloud.dev/blob"
 
-	"k8s.io/test-infra/pkg/io"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	prowapi "k8s.io/test-infra/prow/apis/prowjobs/v1"
 )
 
@@ -46,24 +46,24 @@ type History struct {
 	sync.Mutex
 	logSizeLimit int
 
-	opener io.Opener
+	opener iov2.Opener
 	path   string
 }
 
 type Opener interface {
-	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error)
-	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error)
+	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (iov2.ReadCloser, error)
+	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (iov2.WriteCloser, error)
 }
 
 func readHistory(maxRecordsPerKey int, opener Opener, path string) (map[string]*recordLog, error) {
 	reader, err := opener.Reader(context.Background(), path, nil)
-	if io.IsNotExist(err) { // No history exists yet. This is not an error.
+	if iov2.IsNotExist(err) { // No history exists yet. This is not an error.
 		return map[string]*recordLog{}, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("open: %v", err)
 	}
-	defer io.LogClose(reader)
+	defer iov2.LogClose(reader)
 	raw, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("read: %v", err)
@@ -103,7 +103,7 @@ func writeHistory(opener Opener, path string, hist map[string][]*Record) error {
 		return fmt.Errorf("marshal: %v", err)
 	}
 	if _, err := fmt.Fprint(writer, string(b)); err != nil {
-		io.LogClose(writer)
+		iov2.LogClose(writer)
 		return fmt.Errorf("write: %v", err)
 	}
 	if err := writer.Close(); err != nil {
@@ -122,7 +122,7 @@ type Record struct {
 }
 
 // New creates a new History struct with the specificed recordLog size limit.
-func New(maxRecordsPerKey int, opener io.Opener, path string) (*History, error) {
+func New(maxRecordsPerKey int, opener iov2.Opener, path string) (*History, error) {
 	hist := &History{
 		logs:         map[string]*recordLog{},
 		logSizeLimit: maxRecordsPerKey,

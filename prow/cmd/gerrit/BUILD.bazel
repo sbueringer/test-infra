@@ -9,8 +9,7 @@ go_library(
     importpath = "k8s.io/test-infra/prow/cmd/gerrit",
     visibility = ["//visibility:private"],
     deps = [
-        "//pkg/io:go_default_library",
-        "//pkg/io/provider-imports:go_default_library",
+        "//pkg/io/v2:go_default_library",
         "//prow/config:go_default_library",
         "//prow/flagutil:go_default_library",
         "//prow/gerrit/adapter:go_default_library",
@@ -54,7 +53,7 @@ go_test(
     srcs = ["main_test.go"],
     embed = [":go_default_library"],
     deps = [
-        "//pkg/io:go_default_library",
+        "//pkg/io/v2:go_default_library",
         "//prow/gerrit/client:go_default_library",
         "@dev_gocloud//blob:go_default_library",
         "@io_k8s_apimachinery//pkg/util/sets:go_default_library",

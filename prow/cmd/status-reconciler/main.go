@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"k8s.io/test-infra/pkg/flagutil"
-	"k8s.io/test-infra/pkg/io"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"k8s.io/test-infra/prow/config"
 	"k8s.io/test-infra/prow/config/secret"
 	prowflagutil "k8s.io/test-infra/prow/flagutil"
@@ -35,9 +35,6 @@ import (
 	"k8s.io/test-infra/prow/pjutil"
 	"k8s.io/test-infra/prow/plugins"
 	"k8s.io/test-infra/prow/statusreconciler"
-
-	// Import storage providers
-	_ "k8s.io/test-infra/pkg/io/provider-imports"
 )
 
 const (
@@ -145,7 +142,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	opener, err := io.NewOpener(ctx, o.gcsCredentialsFile)
+	opener, err := iov2.NewOpener(ctx, o.gcsCredentialsFile)
 	if err != nil {
 		entry := logrus.WithError(err)
 		if p := o.gcsCredentialsFile; p != "" {

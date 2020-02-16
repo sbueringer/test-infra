@@ -21,7 +21,7 @@ import (
 	"path"
 	"strings"
 
-	"k8s.io/test-infra/pkg/io/providers"
+	"k8s.io/test-infra/pkg/io/v2/providers"
 )
 
 func ParseStoragePath(identifiers providers.StorageProviderPathIdentifiers, storagePath string) (bucket, relativePath string, err error) {

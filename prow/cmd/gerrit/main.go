@@ -31,7 +31,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gocloud.dev/blob"
 
-	"k8s.io/test-infra/pkg/io"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"k8s.io/test-infra/prow/config"
 	prowflagutil "k8s.io/test-infra/prow/flagutil"
 	"k8s.io/test-infra/prow/gerrit/adapter"
@@ -39,9 +39,6 @@ import (
 	"k8s.io/test-infra/prow/interrupts"
 	"k8s.io/test-infra/prow/logrusutil"
 	"k8s.io/test-infra/prow/pjutil"
-
-	// Import storage providers
-	_ "k8s.io/test-infra/pkg/io/provider-imports"
 )
 
 type options struct {
@@ -94,8 +91,8 @@ func gatherOptions(fs *flag.FlagSet, args ...string) options {
 }
 
 type Opener interface {
-	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error)
-	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error)
+	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (iov2.ReadCloser, error)
+	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (iov2.WriteCloser, error)
 }
 
 type syncTime struct {
@@ -153,13 +150,13 @@ func (st *syncTime) init(hostProjects client.ProjectsFlag) error {
 
 func (st *syncTime) currentState() (client.LastSyncState, error) {
 	r, err := st.opener.Reader(st.ctx, st.path, nil)
-	if io.IsNotExist(err) {
+	if iov2.IsNotExist(err) {
 		logrus.Warnf("lastSyncFallback not found at %q", st.path)
 		return nil, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("open: %v", err)
 	}
-	defer io.LogClose(r)
+	defer iov2.LogClose(r)
 	buf, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("read: %v", err)
@@ -212,7 +209,7 @@ func (st *syncTime) Update(newState client.LastSyncState) error {
 		return fmt.Errorf("marshall state: %v", err)
 	}
 	if _, err := fmt.Fprint(w, string(stateBytes)); err != nil {
-		io.LogClose(w)
+		iov2.LogClose(w)
 		return fmt.Errorf("write %q: %v", st.path, err)
 	}
 	if err := w.Close(); err != nil {
@@ -246,7 +243,7 @@ func main() {
 	}
 
 	ctx := context.Background() // TODO(fejta): use something better
-	op, err := io.NewOpener(ctx, o.gcsCredentialsFile)
+	op, err := iov2.NewOpener(ctx, o.gcsCredentialsFile)
 	if err != nil {
 		logrus.WithError(err).Fatal("Error creating opener")
 	}

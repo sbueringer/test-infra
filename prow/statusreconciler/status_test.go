@@ -28,18 +28,18 @@ import (
 	"github.com/sirupsen/logrus"
 	"gocloud.dev/blob"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/test-infra/pkg/io"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"k8s.io/test-infra/prow/config"
 	"sigs.k8s.io/yaml"
 )
 
 type testOpener struct{}
 
-func (t *testOpener) Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error) {
+func (t *testOpener) Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (iov2.ReadCloser, error) {
 	return os.Open(path)
 }
 
-func (t *testOpener) Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error) {
+func (t *testOpener) Writer(ctx context.Context, path string, opts *blob.WriterOptions) (iov2.WriteCloser, error) {
 	return os.Create(path)
 }
 

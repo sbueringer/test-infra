@@ -20,7 +20,7 @@ package providerimports
 // linked into every binary which imports the providerimports
 // package (and thus registered)
 import (
-	_ "k8s.io/test-infra/pkg/io/providers/file"
-	_ "k8s.io/test-infra/pkg/io/providers/gcs"
-	_ "k8s.io/test-infra/pkg/io/providers/s3"
+	_ "k8s.io/test-infra/pkg/io/v2/providers/file"
+	_ "k8s.io/test-infra/pkg/io/v2/providers/gcs"
+	_ "k8s.io/test-infra/pkg/io/v2/providers/s3"
 )

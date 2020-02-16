@@ -2,14 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["provider-imports.go"],
-    importpath = "k8s.io/test-infra/pkg/io/provider-imports",
+    srcs = ["path.go"],
+    importpath = "k8s.io/test-infra/pkg/io/v2/providers/util",
     visibility = ["//visibility:public"],
-    deps = [
-        "//pkg/io/providers/file:go_default_library",
-        "//pkg/io/providers/gcs:go_default_library",
-        "//pkg/io/providers/s3:go_default_library",
-    ],
+    deps = ["//pkg/io/v2/providers:go_default_library"],
 )
 
 filegroup(

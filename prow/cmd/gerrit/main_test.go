@@ -31,17 +31,18 @@ import (
 
 	"gocloud.dev/blob"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/test-infra/pkg/io"
+
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"k8s.io/test-infra/prow/gerrit/client"
 )
 
 type fakeOpener struct{}
 
-func (o fakeOpener) Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error) {
-	return nil, io.ErrNotFoundTest
+func (o fakeOpener) Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (iov2.ReadCloser, error) {
+	return nil, iov2.ErrNotFoundTest
 }
 
-func (o fakeOpener) Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error) {
+func (o fakeOpener) Writer(ctx context.Context, path string, opts *blob.WriterOptions) (iov2.WriteCloser, error) {
 	return nil, errors.New("do not call Writer")
 }
 
@@ -136,7 +137,7 @@ func TestSyncTime(t *testing.T) {
 	path := filepath.Join(dir, "value.txt")
 	var noCreds string
 	ctx := context.Background()
-	open, err := io.NewOpener(ctx, noCreds)
+	open, err := iov2.NewOpener(ctx, noCreds)
 	if err != nil {
 		t.Fatalf("Failed to create opener: %v", err)
 	}
@@ -214,7 +215,7 @@ func TestNewProjectAddition(t *testing.T) {
 
 	var noCreds string
 	ctx := context.Background()
-	open, err := io.NewOpener(ctx, noCreds)
+	open, err := iov2.NewOpener(ctx, noCreds)
 	if err != nil {
 		t.Fatalf("Failed to create opener: %v", err)
 	}

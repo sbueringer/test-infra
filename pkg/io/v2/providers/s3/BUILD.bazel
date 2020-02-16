@@ -2,17 +2,17 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["gcs.go"],
-    importpath = "k8s.io/test-infra/pkg/io/providers/gcs",
+    srcs = ["s3.go"],
+    importpath = "k8s.io/test-infra/pkg/io/v2/providers/s3",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/io/providers:go_default_library",
-        "//pkg/io/providers/util:go_default_library",
-        "@com_google_cloud_go//storage:go_default_library",
+        "//pkg/io/v2/providers:go_default_library",
+        "//pkg/io/v2/providers/util:go_default_library",
+        "@com_github_aws_aws_sdk_go//aws:go_default_library",
+        "@com_github_aws_aws_sdk_go//aws/credentials:go_default_library",
+        "@com_github_aws_aws_sdk_go//aws/session:go_default_library",
         "@dev_gocloud//blob:go_default_library",
-        "@dev_gocloud//blob/gcsblob:go_default_library",
-        "@dev_gocloud//gcp:go_default_library",
-        "@org_golang_x_oauth2//google:go_default_library",
+        "@dev_gocloud//blob/s3blob:go_default_library",
     ],
 )
 

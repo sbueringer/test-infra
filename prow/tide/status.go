@@ -36,7 +36,7 @@ import (
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
-	"k8s.io/test-infra/pkg/io"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"k8s.io/test-infra/prow/config"
 	"k8s.io/test-infra/prow/git/v2"
 	"k8s.io/test-infra/prow/github"
@@ -86,7 +86,7 @@ type statusController struct {
 	baseSHAs         map[string]string
 
 	storedState
-	opener io.Opener
+	opener iov2.Opener
 	path   string
 }
 
@@ -431,7 +431,7 @@ func (sc *statusController) load() {
 		entry.WithError(err).Warn("Cannot open stored state")
 		return
 	}
-	defer io.LogClose(reader)
+	defer iov2.LogClose(reader)
 
 	buf, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -466,7 +466,7 @@ func (sc *statusController) save(ticker *time.Ticker) {
 		}
 		if _, err = writer.Write(buf); err != nil {
 			entry.WithError(err).Warn("Cannot write state")
-			io.LogClose(writer)
+			iov2.LogClose(writer)
 			continue
 		}
 		if err := writer.Close(); err != nil {

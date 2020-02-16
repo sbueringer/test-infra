@@ -28,8 +28,8 @@ import (
 
 	"gocloud.dev/blob"
 	"k8s.io/apimachinery/pkg/util/diff"
-	prowio "k8s.io/test-infra/pkg/io"
 
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	prowapi "k8s.io/test-infra/prow/apis/prowjobs/v1"
 )
 
@@ -140,7 +140,7 @@ type testOpener struct {
 
 func (t *testOpener) Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error) {
 	if t.dne {
-		return nil, prowio.ErrNotFoundTest
+		return nil, iov2.ErrNotFoundTest
 	}
 	if path != fakePath {
 		return nil, fmt.Errorf("path %q != expected %q", path, fakePath)

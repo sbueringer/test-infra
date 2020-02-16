@@ -27,8 +27,8 @@ import (
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/s3blob"
 
-	"k8s.io/test-infra/pkg/io/providers"
-	"k8s.io/test-infra/pkg/io/providers/util"
+	"k8s.io/test-infra/pkg/io/v2/providers"
+	"k8s.io/test-infra/pkg/io/v2/providers/util"
 )
 
 var (

@@ -24,7 +24,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/test-infra/pkg/io"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	prowv1 "k8s.io/test-infra/prow/client/clientset/versioned/typed/prowjobs/v1"
 	"k8s.io/test-infra/prow/pjutil"
 
@@ -37,7 +37,7 @@ import (
 )
 
 // NewController constructs a new controller to reconcile stauses on config change
-func NewController(continueOnError bool, addedPresubmitBlacklist sets.String, opener io.Opener, configPath, jobConfigPath, statusURI string, prowJobClient prowv1.ProwJobInterface, githubClient github.Client, pluginAgent *plugins.ConfigAgent) *Controller {
+func NewController(continueOnError bool, addedPresubmitBlacklist sets.String, opener iov2.Opener, configPath, jobConfigPath, statusURI string, prowJobClient prowv1.ProwJobInterface, githubClient github.Client, pluginAgent *plugins.ConfigAgent) *Controller {
 	sc := &statusController{
 		logger:        logrus.WithField("client", "statusController"),
 		opener:        opener,

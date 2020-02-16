@@ -14,35 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gcs
+package file
 
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"path"
+	"strings"
 
-	"cloud.google.com/go/storage"
 	"gocloud.dev/blob"
-	"gocloud.dev/blob/gcsblob"
-	"gocloud.dev/gcp"
-	"golang.org/x/oauth2/google"
+	"gocloud.dev/blob/fileblob"
 
-	"k8s.io/test-infra/pkg/io/providers"
-	"k8s.io/test-infra/pkg/io/providers/util"
-)
-
-const (
-	httpsScheme = "https"
+	"k8s.io/test-infra/pkg/io/v2/providers"
 )
 
 var (
-	ProviderName           = "gs"
-	StoragePrefix          = "gs"
+	ProviderName           = "file"
+	StoragePrefix          = "file"
 	StorageSeparator       = "://"
-	URLPrefix              = "gs"
+	URLPrefix              = "file"
 	URLSeparator           = "/"
-	AlternativeURLPrefixes = []string{"gcs"}
+	AlternativeURLPrefixes = []string{}
 )
 
 var identifiers = providers.StorageProviderPathIdentifiers{
@@ -57,49 +49,32 @@ func init() {
 	providers.RegisterProvider(ProviderName, createProvider, identifiers)
 }
 
-func createProvider(credentials []byte) providers.StorageProvider {
-	return &StorageProvider{
-		Credentials: credentials,
-	}
+func createProvider(_ []byte) providers.StorageProvider {
+	return &StorageProvider{}
 }
 
 type StorageProvider struct {
-	Credentials []byte
 }
 
 func (s *StorageProvider) ParseStoragePath(storagePath string) (bucket, relativePath string, err error) {
-	return util.ParseStoragePath(identifiers, storagePath)
+	if !strings.HasPrefix(storagePath, identifiers.StoragePrefix+identifiers.StorageSeparator) {
+		return "", "", fmt.Errorf("path is not a valid %s path: %s", identifiers.StoragePrefix, storagePath)
+	}
+	storagePath = strings.TrimPrefix(storagePath, identifiers.StoragePrefix+identifiers.StorageSeparator)
+
+	dir, file := path.Split(storagePath)
+	return dir, file, nil
 }
 
-func (s *StorageProvider) GetBucket(ctx context.Context, bucketName string) (*blob.Bucket, error) {
-	googleCredentials, err := google.CredentialsFromJSON(ctx, s.Credentials, storage.ScopeFullControl)
+func (s *StorageProvider) GetBucket(_ context.Context, bucket string) (*blob.Bucket, error) {
+	bkt, err := fileblob.OpenBucket(bucket, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error getting Google credentials from JSON: %v", err)
-	}
-
-	client, err := gcp.NewHTTPClient(
-		gcp.DefaultTransport(),
-		gcp.TokenSource(googleCredentials.TokenSource))
-	if err != nil {
-		return nil, fmt.Errorf("error creating GCP Http Client: %v", err)
-	}
-
-	bkt, err := gcsblob.OpenBucket(ctx, client, bucketName, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error opening GCS bucket: %v", err)
+		return nil, fmt.Errorf("error opening file bucket: %v", err)
 	}
 	return bkt, nil
 }
 
 func (s *StorageProvider) SignedURL(ctx context.Context, bucketName, relativePath string, opts *blob.SignedURLOptions) (string, error) {
-	if len(s.Credentials) == 0 {
-		artifactLink := &url.URL{
-			Scheme: httpsScheme,
-			Host:   "storage.googleapis.com",
-			Path:   path.Join(bucketName, relativePath),
-		}
-		return artifactLink.String(), nil
-	}
 	bucket, err := s.GetBucket(ctx, bucketName)
 	if err != nil {
 		return "", err

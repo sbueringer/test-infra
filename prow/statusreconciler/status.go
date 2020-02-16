@@ -25,7 +25,7 @@ import (
 	"gocloud.dev/blob"
 	"sigs.k8s.io/yaml"
 
-	"k8s.io/test-infra/pkg/io"
+	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"k8s.io/test-infra/prow/config"
 )
 
@@ -39,8 +39,8 @@ type statusClient interface {
 }
 
 type Opener interface {
-	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error)
-	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error)
+	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (iov2.ReadCloser, error)
+	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (iov2.WriteCloser, error)
 }
 
 type statusController struct {
@@ -90,7 +90,7 @@ func (s *statusController) Save() error {
 	}
 	if _, err = writer.Write(buf); err != nil {
 		entry.WithError(err).Warn("Cannot write state")
-		io.LogClose(writer)
+		iov2.LogClose(writer)
 		return err
 	}
 	if err := writer.Close(); err != nil {
@@ -114,7 +114,7 @@ func (s *statusController) loadState() (storedState, error) {
 		entry.WithError(err).Warn("Cannot open stored state")
 		return state, err
 	}
-	defer io.LogClose(reader)
+	defer iov2.LogClose(reader)
 
 	buf, err := ioutil.ReadAll(reader)
 	if err != nil {
