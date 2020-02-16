@@ -6,8 +6,6 @@ go_library(
     importpath = "k8s.io/test-infra/pkg/io/v2/providers/s3",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/io/v2/providers:go_default_library",
-        "//pkg/io/v2/providers/util:go_default_library",
         "@com_github_aws_aws_sdk_go//aws:go_default_library",
         "@com_github_aws_aws_sdk_go//aws/credentials:go_default_library",
         "@com_github_aws_aws_sdk_go//aws/session:go_default_library",

@@ -32,9 +32,6 @@ import (
 
 	"k8s.io/test-infra/pkg/io/v2/providers"
 	"k8s.io/test-infra/prow/errorutil"
-
-	// Import storage providers
-	_ "k8s.io/test-infra/pkg/io/v2/provider-imports"
 )
 
 // Aliases to types in the standard library
@@ -57,8 +54,6 @@ type Opener interface {
 
 	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error)
 	Upload(ctx context.Context, uploads map[string]UploadFunc) error
-
-	ParseStoragePath(path string) (bucket, relativePath string, err error)
 
 	// Workaround to retrieve the storageClient for prow/spyglass/testgrid.go because it calls
 	// github.com/GoogleCloudPlatform/testgrid/config.Read() which only works with GCS storage client right now
@@ -85,15 +80,15 @@ func NewOpener(ctx context.Context, credentialsFile string) (Opener, error) {
 }
 
 func (o *opener) getBucket(ctx context.Context, path string) (*blob.Bucket, string, error) {
-	sp, err := providers.GetStorageProvider(o.credentials, path)
+	sp, err := providers.GetStorageProvider(path)
 	if err != nil {
 		return nil, "", fmt.Errorf("could not get bucket: %w", err)
 	}
-	bucketName, relativePath, err := sp.ParseStoragePath(path)
+	bucketName, relativePath, err := providers.ParseStoragePath(path)
 	if err != nil {
 		return nil, "", fmt.Errorf("could not get bucket: %w", err)
 	}
-	bucket, err := sp.GetBucket(ctx, bucketName)
+	bucket, err := sp.GetBucket(ctx, o.credentials, bucketName)
 	if err != nil {
 		return nil, "", err
 	}
@@ -161,15 +156,15 @@ func (o *opener) Attributes(ctx context.Context, path string) (*blob.Attributes,
 }
 
 func (o *opener) SignedURL(ctx context.Context, path string, opts *blob.SignedURLOptions) (string, error) {
-	sp, err := providers.GetStorageProvider(o.credentials, path)
+	sp, err := providers.GetStorageProvider(path)
 	if err != nil {
 		return "", nil
 	}
-	bucket, relativePath, err := sp.ParseStoragePath(path)
+	bucket, relativePath, err := providers.ParseStoragePath(path)
 	if err != nil {
 		return "", err
 	}
-	return sp.SignedURL(ctx, bucket, relativePath, opts)
+	return sp.SignedURL(ctx, o.credentials, bucket, relativePath, opts)
 }
 
 // Lists all paths with given path. If matchFuncs are given, all must match so that the obj
@@ -179,11 +174,7 @@ func (o *opener) ListSubPaths(ctx context.Context, path string, matchFns ...func
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	sp, err := providers.GetStorageProvider(o.credentials, path)
-	if err != nil {
-		return nil, nil
-	}
-	_, relativePath, err := sp.ParseStoragePath(path)
+	_, relativePath, err := providers.ParseStoragePath(path)
 	if err != nil {
 		return nil, err
 	}
@@ -345,18 +336,6 @@ func convertAttributesToWriterOptions(a *blob.Attributes) *blob.WriterOptions {
 	}
 }
 
-func (o *opener) ParseStoragePath(path string) (bucket, relativePath string, err error) {
-	sp, err := providers.GetStorageProvider(o.credentials, path)
-	if err != nil {
-		return "", "", fmt.Errorf("could not get bucket: %w", err)
-	}
-	bucket, relativePath, err = sp.ParseStoragePath(path)
-	if err != nil {
-		return "", "", fmt.Errorf("could not get bucket: %w", err)
-	}
-	return bucket, relativePath, nil
-}
-
 func (o *opener) GetGCSClient(ctx context.Context) (*storage.Client, error) {
 	bucket, _, err := o.getBucket(ctx, "gs://give-me-the-client")
 	if err != nil {
@@ -386,48 +365,6 @@ func LogClose(c io.Closer) {
 	if err := c.Close(); err != nil {
 		logrus.WithError(err).Error("Failed to close")
 	}
-}
-
-func PathHasStorageProviderPrefix(storagePath string) bool {
-	for _, sp := range providers.GetAllStorageProviderPathIdentifiers() {
-		if strings.HasPrefix(storagePath, sp.StoragePrefix+sp.StorageSeparator) {
-			return true
-		}
-	}
-	return false
-}
-
-func URLHasStorageProviderPrefix(url string) bool {
-	for _, sp := range providers.GetAllStorageProviderPathIdentifiers() {
-		for _, urlPrefix := range append(sp.AlternativeURLPrefixes, sp.URLPrefix) {
-			if strings.HasPrefix(url, urlPrefix+sp.URLSeparator) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// EncodeStorageURL encodes storage path to URL,
-// e.g.: s3://prow-artifacts => s3/prow-artifacts
-func EncodeStorageURL(storagePath string) string {
-	sp := providers.GetStorageProviderPathIdentifiersFromPath(storagePath)
-	if strings.HasPrefix(storagePath, sp.StoragePrefix+sp.StorageSeparator) {
-		return strings.Replace(storagePath, sp.StoragePrefix+sp.StorageSeparator, sp.URLPrefix+sp.URLSeparator, 1)
-	}
-	return storagePath
-}
-
-// DecodeStorageURL decodes storage URL to path,
-// e.g.: s3/prow-artifacts => s3://prow-artifacts
-func DecodeStorageURL(url string) string {
-	sp := providers.GetStorageProviderPathIdentifiersFromURL(url)
-	for _, urlPrefix := range append(sp.AlternativeURLPrefixes, sp.URLPrefix) {
-		if strings.HasPrefix(url, urlPrefix+sp.URLSeparator) {
-			return strings.Replace(url, urlPrefix+sp.URLSeparator, sp.StoragePrefix+sp.StorageSeparator, 1)
-		}
-	}
-	return url
 }
 
 // TODO: not sure if it's worth having a separate method, but for now it's easier

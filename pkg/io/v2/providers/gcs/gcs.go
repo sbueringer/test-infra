@@ -27,52 +27,20 @@ import (
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/gcp"
 	"golang.org/x/oauth2/google"
-
-	"k8s.io/test-infra/pkg/io/v2/providers"
-	"k8s.io/test-infra/pkg/io/v2/providers/util"
 )
 
 const (
 	httpsScheme = "https"
 )
 
-var (
-	ProviderName           = "gs"
-	StoragePrefix          = "gs"
-	StorageSeparator       = "://"
-	URLPrefix              = "gs"
-	URLSeparator           = "/"
-	AlternativeURLPrefixes = []string{"gcs"}
-)
+var ProviderName = "gs"
 
-var identifiers = providers.StorageProviderPathIdentifiers{
-	StoragePrefix:          StoragePrefix,
-	StorageSeparator:       StorageSeparator,
-	URLPrefix:              URLPrefix,
-	URLSeparator:           URLSeparator,
-	AlternativeURLPrefixes: AlternativeURLPrefixes,
-}
+var Provider = &StorageProvider{}
 
-func init() {
-	providers.RegisterProvider(ProviderName, createProvider, identifiers)
-}
+type StorageProvider struct{}
 
-func createProvider(credentials []byte) providers.StorageProvider {
-	return &StorageProvider{
-		Credentials: credentials,
-	}
-}
-
-type StorageProvider struct {
-	Credentials []byte
-}
-
-func (s *StorageProvider) ParseStoragePath(storagePath string) (bucket, relativePath string, err error) {
-	return util.ParseStoragePath(identifiers, storagePath)
-}
-
-func (s *StorageProvider) GetBucket(ctx context.Context, bucketName string) (*blob.Bucket, error) {
-	googleCredentials, err := google.CredentialsFromJSON(ctx, s.Credentials, storage.ScopeFullControl)
+func (s *StorageProvider) GetBucket(ctx context.Context, credentials []byte, bucketName string) (*blob.Bucket, error) {
+	googleCredentials, err := google.CredentialsFromJSON(ctx, credentials, storage.ScopeFullControl)
 	if err != nil {
 		return nil, fmt.Errorf("error getting Google credentials from JSON: %v", err)
 	}
@@ -91,8 +59,8 @@ func (s *StorageProvider) GetBucket(ctx context.Context, bucketName string) (*bl
 	return bkt, nil
 }
 
-func (s *StorageProvider) SignedURL(ctx context.Context, bucketName, relativePath string, opts *blob.SignedURLOptions) (string, error) {
-	if len(s.Credentials) == 0 {
+func (s *StorageProvider) SignedURL(ctx context.Context, credentials []byte, bucketName, relativePath string, opts *blob.SignedURLOptions) (string, error) {
+	if len(credentials) == 0 {
 		artifactLink := &url.URL{
 			Scheme: httpsScheme,
 			Host:   "storage.googleapis.com",
@@ -100,7 +68,7 @@ func (s *StorageProvider) SignedURL(ctx context.Context, bucketName, relativePat
 		}
 		return artifactLink.String(), nil
 	}
-	bucket, err := s.GetBucket(ctx, bucketName)
+	bucket, err := s.GetBucket(ctx, credentials, bucketName)
 	if err != nil {
 		return "", err
 	}

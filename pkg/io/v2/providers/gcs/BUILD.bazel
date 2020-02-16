@@ -6,8 +6,6 @@ go_library(
     importpath = "k8s.io/test-infra/pkg/io/v2/providers/gcs",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/io/v2/providers:go_default_library",
-        "//pkg/io/v2/providers/util:go_default_library",
         "@com_google_cloud_go//storage:go_default_library",
         "@dev_gocloud//blob:go_default_library",
         "@dev_gocloud//blob/gcsblob:go_default_library",

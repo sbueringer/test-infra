@@ -5,7 +5,12 @@ go_library(
     srcs = ["providers.go"],
     importpath = "k8s.io/test-infra/pkg/io/v2/providers",
     visibility = ["//visibility:public"],
-    deps = ["@dev_gocloud//blob:go_default_library"],
+    deps = [
+        "//pkg/io/v2/providers/file:go_default_library",
+        "//pkg/io/v2/providers/gcs:go_default_library",
+        "//pkg/io/v2/providers/s3:go_default_library",
+        "@dev_gocloud//blob:go_default_library",
+    ],
 )
 
 filegroup(
@@ -22,7 +27,6 @@ filegroup(
         "//pkg/io/v2/providers/file:all-srcs",
         "//pkg/io/v2/providers/gcs:all-srcs",
         "//pkg/io/v2/providers/s3:all-srcs",
-        "//pkg/io/v2/providers/util:all-srcs",
     ],
     tags = ["automanaged"],
     visibility = ["//visibility:public"],

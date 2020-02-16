@@ -26,41 +26,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/s3blob"
-
-	"k8s.io/test-infra/pkg/io/v2/providers"
-	"k8s.io/test-infra/pkg/io/v2/providers/util"
 )
 
-var (
-	ProviderName           = "s3"
-	StoragePrefix          = "s3"
-	StorageSeparator       = "://"
-	URLPrefix              = "s3"
-	URLSeparator           = "/"
-	AlternativeURLPrefixes = []string{}
-)
+var ProviderName = "s3"
 
-var identifiers = providers.StorageProviderPathIdentifiers{
-	StoragePrefix:          StoragePrefix,
-	StorageSeparator:       StorageSeparator,
-	URLPrefix:              URLPrefix,
-	URLSeparator:           URLSeparator,
-	AlternativeURLPrefixes: AlternativeURLPrefixes,
-}
+var Provider = &StorageProvider{}
 
-func init() {
-	providers.RegisterProvider(ProviderName, createProvider, identifiers)
-}
-
-func createProvider(credentials []byte) providers.StorageProvider {
-	return &StorageProvider{
-		Credentials: credentials,
-	}
-}
-
-type StorageProvider struct {
-	Credentials []byte
-}
+type StorageProvider struct{}
 
 type s3Credentials struct {
 	Region           string `json:"region"`
@@ -72,14 +44,9 @@ type s3Credentials struct {
 	SecretKey        string `json:"secret_key"`
 }
 
-func (s *StorageProvider) ParseStoragePath(storagePath string) (bucket, relativePath string, err error) {
-	return util.ParseStoragePath(identifiers, storagePath)
-}
-
-func (s *StorageProvider) GetBucket(ctx context.Context, bucketName string) (*blob.Bucket, error) {
-
+func (s *StorageProvider) GetBucket(ctx context.Context, creds []byte, bucketName string) (*blob.Bucket, error) {
 	s3Credentials := &s3Credentials{}
-	if err := json.Unmarshal(s.Credentials, s3Credentials); err != nil {
+	if err := json.Unmarshal(creds, s3Credentials); err != nil {
 		return nil, fmt.Errorf("error getting S3 credentials from JSON: %v", err)
 	}
 
@@ -103,8 +70,8 @@ func (s *StorageProvider) GetBucket(ctx context.Context, bucketName string) (*bl
 	return bkt, nil
 }
 
-func (s *StorageProvider) SignedURL(ctx context.Context, bucketName, relativePath string, opts *blob.SignedURLOptions) (string, error) {
-	bucket, err := s.GetBucket(ctx, bucketName)
+func (s *StorageProvider) SignedURL(ctx context.Context, creds []byte, bucketName, relativePath string, opts *blob.SignedURLOptions) (string, error) {
+	bucket, err := s.GetBucket(ctx, creds, bucketName)
 	if err != nil {
 		return "", err
 	}

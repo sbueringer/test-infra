@@ -18,6 +18,11 @@ package providers
 
 import (
 	"context"
+	"fmt"
+	"k8s.io/test-infra/pkg/io/v2/providers/file"
+	"k8s.io/test-infra/pkg/io/v2/providers/gcs"
+	"k8s.io/test-infra/pkg/io/v2/providers/s3"
+	"path"
 	"strings"
 
 	"gocloud.dev/blob"
@@ -25,64 +30,103 @@ import (
 
 const (
 	// Required as long as paths without prefix are used
-	DefaultStorageProviderName = "gs"
+	defaultStorageProviderName = "gs"
+
+	storageSeparator = "://"
+	urlSeparator     = "/"
 )
 
 var (
-	storageProviderCreators        = map[string]StorageProviderCreator{}
-	storageProviderPathIdentifiers = map[string]StorageProviderPathIdentifiers{}
+	storageProviders = map[string]StorageProvider{}
 )
 
+func init() {
+	storageProviders = map[string]StorageProvider{
+		file.ProviderName: file.Provider,
+		gcs.ProviderName:  gcs.Provider,
+		s3.ProviderName:   s3.Provider,
+	}
+}
+
 type StorageProvider interface {
-	ParseStoragePath(storagePath string) (bucket, relativePath string, err error)
-	GetBucket(ctx context.Context, bucketName string) (*blob.Bucket, error)
-	SignedURL(ctx context.Context, bucketName, relativePath string, opts *blob.SignedURLOptions) (string, error)
+	GetBucket(ctx context.Context, credentials []byte, bucketName string) (*blob.Bucket, error)
+	SignedURL(ctx context.Context, credentials []byte, bucketName, relativePath string, opts *blob.SignedURLOptions) (string, error)
 }
 
-type StorageProviderCreator func([]byte) StorageProvider
-
-type StorageProviderPathIdentifiers struct {
-	StoragePrefix          string
-	StorageSeparator       string
-	URLPrefix              string
-	URLSeparator           string
-	AlternativeURLPrefixes []string
-}
-
-func RegisterProvider(name string, fn StorageProviderCreator, config StorageProviderPathIdentifiers) {
-	storageProviderCreators[name] = fn
-	storageProviderPathIdentifiers[name] = config
-}
-
-func GetStorageProvider(credentials []byte, storagePath string) (StorageProvider, error) {
-	for spName, sp := range storageProviderPathIdentifiers {
-		if strings.HasPrefix(storagePath, sp.StoragePrefix+sp.StorageSeparator) {
-			return storageProviderCreators[spName](credentials), nil
+func GetStorageProvider(storagePath string) (StorageProvider, error) {
+	for spName := range storageProviders {
+		if strings.HasPrefix(storagePath, spName+storageSeparator) {
+			return storageProviders[spName], nil
 		}
 	}
-	return storageProviderCreators[DefaultStorageProviderName](credentials), nil
+	return storageProviders[defaultStorageProviderName], nil
 }
 
-func GetAllStorageProviderPathIdentifiers() map[string]StorageProviderPathIdentifiers {
-	return storageProviderPathIdentifiers
-}
-
-func GetStorageProviderPathIdentifiersFromPath(storagePath string) StorageProviderPathIdentifiers {
-	for _, sp := range storageProviderPathIdentifiers {
-		if strings.HasPrefix(storagePath, sp.StoragePrefix+sp.StorageSeparator) {
-			return sp
+func ParseStoragePath(storagePath string) (bucket, relativePath string, err error) {
+	var storageProvider string
+	for spName := range storageProviders {
+		if strings.HasPrefix(storagePath, spName+storageSeparator) {
+			storagePath = strings.TrimPrefix(storagePath, storagePath+storageSeparator)
+			storageProvider = spName
+			break
 		}
 	}
-	return storageProviderPathIdentifiers[DefaultStorageProviderName]
+
+	if storageProvider == "file" {
+		dir, f := path.Split(storagePath)
+		return dir, f, nil
+	}
+
+	pathSplit := strings.Split(storagePath, "/")
+	if len(pathSplit) < 2 {
+		return "", "", fmt.Errorf("path %q is not a valid %s path", storagePath, storageProvider)
+	}
+	return pathSplit[0], path.Join(pathSplit[1:]...), nil
+
 }
 
-func GetStorageProviderPathIdentifiersFromURL(url string) StorageProviderPathIdentifiers {
-	for _, sp := range storageProviderPathIdentifiers {
-		for _, urlPrefix := range append(sp.AlternativeURLPrefixes, sp.URLPrefix) {
-			if strings.HasPrefix(url, urlPrefix+sp.URLSeparator) {
-				return sp
-			}
+func PathHasStorageProviderPrefix(storagePath string) bool {
+	for spName := range storageProviders {
+		if strings.HasPrefix(storagePath, spName+storageSeparator) {
+			return true
 		}
 	}
-	return storageProviderPathIdentifiers[DefaultStorageProviderName]
+	return false
+}
+
+func URLHasStorageProviderPrefix(url string) bool {
+	if strings.HasPrefix(url, "gcs://") {
+		url = strings.Replace(url, "gcs://", "gs://", 1)
+	}
+	for spName := range storageProviders {
+		if strings.HasPrefix(url, spName+urlSeparator) {
+			return true
+		}
+	}
+	return false
+}
+
+// EncodeStorageURL encodes storage path to URL,
+// e.g.: s3://prow-artifacts => s3/prow-artifacts
+func EncodeStorageURL(storagePath string) string {
+	for spName := range storageProviders {
+		if strings.HasPrefix(storagePath, spName+storageSeparator) {
+			return strings.Replace(storagePath, spName+storageSeparator, spName+urlSeparator, 1)
+		}
+	}
+	return storagePath
+}
+
+// DecodeStorageURL decodes storage URL to path,
+// e.g.: s3/prow-artifacts => s3://prow-artifacts
+func DecodeStorageURL(url string) string {
+	if strings.HasPrefix(url, "gcs/") {
+		url = strings.Replace(url, "gcs/", "gs/", 1)
+	}
+	for spName := range storageProviders {
+		if strings.HasPrefix(url, spName+urlSeparator) {
+			return strings.Replace(url, spName+urlSeparator, spName+storageSeparator, 1)
+		}
+	}
+	return url
 }
