@@ -122,7 +122,7 @@ filegroup(
         "//pkg/flagutil:all-srcs",
         "//pkg/genyaml:all-srcs",
         "//pkg/ghclient:all-srcs",
-        "//pkg/io/v2:all-srcs",
+        "//pkg/io:all-srcs",
         "//prow:all-srcs",
         "//releng:all-srcs",
         "//robots/commenter:all-srcs",

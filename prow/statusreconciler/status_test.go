@@ -28,9 +28,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"gocloud.dev/blob"
 	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
+
 	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"k8s.io/test-infra/prow/config"
-	"sigs.k8s.io/yaml"
 )
 
 type testOpener struct{}
