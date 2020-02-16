@@ -80,15 +80,11 @@ func NewOpener(ctx context.Context, credentialsFile string) (Opener, error) {
 }
 
 func (o *opener) getBucket(ctx context.Context, path string) (*blob.Bucket, string, error) {
-	sp, err := providers.GetStorageProvider(path)
+	_, _, relativePath, err := providers.ParseStoragePath(path)
 	if err != nil {
 		return nil, "", fmt.Errorf("could not get bucket: %w", err)
 	}
-	bucketName, relativePath, err := providers.ParseStoragePath(path)
-	if err != nil {
-		return nil, "", fmt.Errorf("could not get bucket: %w", err)
-	}
-	bucket, err := sp.GetBucket(ctx, o.credentials, bucketName)
+	bucket, err := providers.GetBucket(ctx, o.credentials, path)
 	if err != nil {
 		return nil, "", err
 	}
@@ -102,7 +98,7 @@ func (o *opener) Reader(ctx context.Context, path string, opts *blob.ReaderOptio
 	}
 	reader, err := bucket.NewReader(ctx, relativePath, opts)
 	if err != nil {
-		return nil, err
+       		return nil, err
 	}
 	return readerCloser{reader, bucket}, nil
 }
@@ -156,15 +152,7 @@ func (o *opener) Attributes(ctx context.Context, path string) (*blob.Attributes,
 }
 
 func (o *opener) SignedURL(ctx context.Context, path string, opts *blob.SignedURLOptions) (string, error) {
-	sp, err := providers.GetStorageProvider(path)
-	if err != nil {
-		return "", nil
-	}
-	bucket, relativePath, err := providers.ParseStoragePath(path)
-	if err != nil {
-		return "", err
-	}
-	return sp.SignedURL(ctx, o.credentials, bucket, relativePath, opts)
+	return providers.SignedURL(ctx, o.credentials, path, opts)
 }
 
 // Lists all paths with given path. If matchFuncs are given, all must match so that the obj
@@ -174,7 +162,7 @@ func (o *opener) ListSubPaths(ctx context.Context, path string, matchFns ...func
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	_, relativePath, err := providers.ParseStoragePath(path)
+	_, _, relativePath, err := providers.ParseStoragePath(path)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +345,7 @@ func IsNotExist(err error) bool {
 	if err == ErrNotFoundTest {
 		return true
 	}
-	return gcerrors.Code(err) == gcerrors.NotFound
+ 	return gcerrors.Code(err) == gcerrors.NotFound
 }
 
 // LogClose will attempt a close an log any error
