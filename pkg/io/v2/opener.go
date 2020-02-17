@@ -61,7 +61,8 @@ type Opener interface {
 }
 
 type opener struct {
-	credentials []byte
+	credentials   []byte
+	cachedBuckets map[string]*blob.Bucket
 }
 
 // NewOpener returns an opener that can read GCS, S3 and local paths.
@@ -75,19 +76,25 @@ func NewOpener(ctx context.Context, credentialsFile string) (Opener, error) {
 		}
 	}
 	return &opener{
-		credentials: credentials,
+		credentials:   credentials,
+		cachedBuckets: map[string]*blob.Bucket{},
 	}, nil
 }
 
 func (o *opener) getBucket(ctx context.Context, path string) (*blob.Bucket, string, error) {
-	_, _, relativePath, err := providers.ParseStoragePath(path)
+	_, bucketName, relativePath, err := providers.ParseStoragePath(path)
 	if err != nil {
 		return nil, "", fmt.Errorf("could not get bucket: %w", err)
 	}
+	if bucket, ok := o.cachedBuckets[bucketName]; ok {
+		return bucket, relativePath, nil
+	}
+
 	bucket, err := providers.GetBucket(ctx, o.credentials, path)
 	if err != nil {
 		return nil, "", err
 	}
+	o.cachedBuckets[bucketName] = bucket
 	return bucket, relativePath, nil
 }
 
@@ -100,26 +107,7 @@ func (o *opener) Reader(ctx context.Context, path string, opts *blob.ReaderOptio
 	if err != nil {
 		return nil, err
 	}
-	return readerCloser{reader, bucket}, nil
-}
-
-type readerCloser struct {
-	r *blob.Reader
-	b *blob.Bucket
-}
-
-func (rc readerCloser) Read(p []byte) (n int, err error) {
-	return rc.r.Read(p)
-}
-
-func (rc readerCloser) Close() error {
-	if err := rc.r.Close(); err != nil {
-		return err
-	}
-	if err := rc.b.Close(); err != nil {
-		return err
-	}
-	return nil
+	return reader, nil
 }
 
 func (o *opener) RangeReader(ctx context.Context, path string, offset, length int64, opts *blob.ReaderOptions) (io.ReadCloser, error) {
@@ -131,7 +119,7 @@ func (o *opener) RangeReader(ctx context.Context, path string, offset, length in
 	if err != nil {
 		return nil, err
 	}
-	return readerCloser{reader, bucket}, nil
+	return reader, nil
 }
 
 func (o *opener) ReadObject(ctx context.Context, path string) ([]byte, error) {
@@ -222,26 +210,7 @@ func (o *opener) Writer(ctx context.Context, path string, opts *blob.WriterOptio
 	if err != nil {
 		return nil, err
 	}
-	return &writerCloser{writer, bucket}, nil
-}
-
-type writerCloser struct {
-	w *blob.Writer
-	b *blob.Bucket
-}
-
-func (rc writerCloser) Write(p []byte) (n int, err error) {
-	return rc.w.Write(p)
-}
-
-func (rc writerCloser) Close() error {
-	if err := rc.w.Close(); err != nil {
-		return err
-	}
-	if err := rc.b.Close(); err != nil {
-		return err
-	}
-	return nil
+	return writer, nil
 }
 
 type UploadFunc func() (io.Reader, *blob.Attributes, error)

@@ -100,7 +100,6 @@ func getGCSBucket(ctx context.Context, credentials []byte, bucketName string) (*
 
 type s3Credentials struct {
 	Region           string `json:"region"`
-	Bucket           string `json:"bucket"`
 	Endpoint         string `json:"endpoint"`
 	Insecure         bool   `json:"insecure"`
 	S3ForcePathStyle bool   `json:"s3_force_path_style"`
@@ -140,30 +139,21 @@ func SignedURL(ctx context.Context, credentials []byte, storagePath string, opts
 		return "", err
 	}
 
-	switch storageProvider {
-	case providerFile, providerS3:
-		bucket, err := GetBucket(ctx, credentials, storagePath)
-		if err != nil {
-			return "", err
+	if storageProvider == providerGS && len(credentials) == 0 {
+		artifactLink := &url.URL{
+			Scheme: httpsScheme,
+			Host:   "storage.googleapis.com",
+			Path:   path.Join(bucketName, relativePath),
 		}
-		return bucket.SignedURL(ctx, relativePath, opts)
-	case providerGS:
-		if len(credentials) == 0 {
-			artifactLink := &url.URL{
-				Scheme: httpsScheme,
-				Host:   "storage.googleapis.com",
-				Path:   path.Join(bucketName, relativePath),
-			}
-			return artifactLink.String(), nil
-		}
-		bucket, err := GetBucket(ctx, credentials, bucketName)
-		if err != nil {
-			return "", err
-		}
-		return bucket.SignedURL(ctx, relativePath, opts)
-	default:
-		return "", fmt.Errorf("unknown storageProvider: %s", storageProvider)
+		return artifactLink.String(), nil
 	}
+
+	bucket, err := GetBucket(ctx, credentials, storagePath)
+	if err != nil {
+		return "", err
+	}
+	defer bucket.Close()
+	return bucket.SignedURL(ctx, relativePath, opts)
 }
 
 func ParseStoragePath(storagePath string) (storageProvider, bucket, relativePath string, err error) {
