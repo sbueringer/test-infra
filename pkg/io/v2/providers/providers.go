@@ -49,7 +49,43 @@ const (
 
 var storageProviders = []string{providerFile, providerGS, providerS3}
 
-// TODO add godoc about supported formats
+// GetBucket opens and returns a gocloud blob.Bucket based on credentials and a path.
+// The path is used to discover which storageProvider should be used.
+//
+// If the storageProvider file is detected, we don't need any credentials and just open a file bucket
+// If no credentials are given, we just fall back to blob.OpenBucket which tries to auto discover credentials
+// e.g. via environment variables. For more details, see: https://gocloud.dev/howto/blob/
+//
+// If we specify credentials and an gs:// or s3:// path is used, credentials must be given in one of the
+// following formats:
+// * Google Cloud Storage (gs://):
+//    {
+//      "type": "service_account",
+//      "project_id": "<project_id>",
+//      "private_key_id": "<private_key_id>",
+//      "private_key": "<private_key>",
+//      "client_email": "<client_email>",
+//      "client_id": "<client_id>",
+//      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+//      "token_uri": "https://oauth2.googleapis.com/token",
+//      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+//      "client_x509_cert_url": "<client_x509_cert_url>"
+//    }
+// * AWS S3 (s3://):
+//    {
+//      "region": "us-east-1",
+//      "s3_force_path_style": true,
+//      "access_key": "access_key",
+//      "secret_key": "secret_key"
+//    }
+// * S3-compatible service, e.g. self-hosted Minio (s3://):
+//    {
+//      "region": "minio",
+//      "endpoint": "https://minio-hl-svc.minio-operator-ns:9000",
+//      "s3_force_path_style": true,
+//      "access_key": "access_key",
+//      "secret_key": "secret_key"
+//    }
 func GetBucket(ctx context.Context, credentials []byte, path string) (*blob.Bucket, error) {
 	storageProvider, bucket, _, err := ParseStoragePath(path)
 	if err != nil {
@@ -73,6 +109,8 @@ func GetBucket(ctx context.Context, credentials []byte, path string) (*blob.Buck
 	}
 }
 
+// getGCSBucket opens a gocloud blob.Bucket based on given credentials in the Google
+// credential JSON format (see documentation of GetBucket for an example)
 func getGCSBucket(ctx context.Context, credentials []byte, bucketName string) (*blob.Bucket, error) {
 	googleCredentials, err := google.CredentialsFromJSON(ctx, credentials, storage.ScopeFullControl)
 	if err != nil {
@@ -105,6 +143,8 @@ type s3Credentials struct {
 	SecretKey        string `json:"secret_key"`
 }
 
+// getS3Bucket opens a gocloud blob.Bucket based on given credentials in the format the
+// struct s3Credentials defines (see documentation of GetBucket for an example)
 func getS3Bucket(ctx context.Context, creds []byte, bucketName string) (*blob.Bucket, error) {
 	s3Credentials := &s3Credentials{}
 	if err := json.Unmarshal(creds, s3Credentials); err != nil {
@@ -131,13 +171,34 @@ func getS3Bucket(ctx context.Context, creds []byte, bucketName string) (*blob.Bu
 	return bkt, nil
 }
 
+// ParseStoragePath parses storagePath and returns the storageProvider, bucket and relativePath
+// For example gs://prow-artifacts/test.log results in (gs, prow-artifacts, test.log)
+// Currently detected storageProviders are GS, S3 and file.
+// Paths with a leading / instead of a storageProvider prefix are treated as file paths for backwards
+// compatibility reasons.
+// File paths are split into a directory and a file. Directory is returned as bucket, file is returned
+// as relativePath.
+// For all other paths the first part is treated as storageProvider prefix, the second segment as bucket
+// and everything after the bucket as relativePath
 func ParseStoragePath(storagePath string) (storageProvider, bucket, relativePath string, err error) {
-	storageProvider = defaultStorageProviderName
+	if strings.HasPrefix(storagePath, "gcs://") {
+		storagePath = strings.Replace(storagePath, "gcs://", "gs://", 1)
+	}
 	for _, spName := range storageProviders {
 		if strings.HasPrefix(storagePath, spName+storageSeparator) {
 			storagePath = strings.TrimPrefix(storagePath, spName+storageSeparator)
 			storageProvider = spName
 			break
+		}
+	}
+
+	// we didn't match one of the registered provider
+	if storageProvider == "" {
+		// if storagePath starts with / default to file (for compatibility reasons)
+		if strings.HasPrefix(storagePath, "/") {
+			storageProvider = defaultStorageProviderName
+		} else { // if not fail with error
+			return "", "", "", fmt.Errorf("couldn't detect storageProvider for path %s", storagePath)
 		}
 	}
 
@@ -147,7 +208,7 @@ func ParseStoragePath(storagePath string) (storageProvider, bucket, relativePath
 	}
 
 	pathSplit := strings.Split(storagePath, "/")
-	if len(pathSplit) < 2 {
+	if len(pathSplit) == 1 && pathSplit[0] == "" {
 		return "", "", "", fmt.Errorf("path %q is not a valid %s path", storagePath, storageProvider)
 	}
 	return storageProvider, pathSplit[0], path.Join(pathSplit[1:]...), nil

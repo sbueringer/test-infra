@@ -25,6 +25,7 @@ import (
 	"io"
 	"io/ioutil"
 	"k8s.io/test-infra/pkg/io/v2/providers"
+	"sync"
 )
 
 // Aliases to types in the standard library
@@ -33,7 +34,7 @@ type (
 	WriteCloser = io.WriteCloser
 )
 
-// Opener has methods to read, write paths, create signed URLs,...
+// Opener has methods to retrieve a Reader or Writer for the given path
 type Opener interface {
 	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error)
 	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error)
@@ -46,6 +47,7 @@ type opener struct {
 }
 
 // NewOpener returns an opener that can read GCS, S3 and local paths.
+// TODO: reference doc of providers.GetBucket, duplicate the doc or just document it here instead of in providers?
 func NewOpener(ctx context.Context, credentialsFile string) (Opener, error) {
 	var credentials []byte
 	var err error
@@ -61,6 +63,9 @@ func NewOpener(ctx context.Context, credentialsFile string) (Opener, error) {
 	}, nil
 }
 
+// getBucket opens a bucket
+// The storageProvider is discovered based on the given path.
+// The buckets are cached per bucket name. So we don't open a bucket multiple times in the same process
 func (o *opener) getBucket(ctx context.Context, path string) (*blob.Bucket, string, error) {
 	_, bucketName, relativePath, err := providers.ParseStoragePath(path)
 	if err != nil {
@@ -81,6 +86,8 @@ func (o *opener) getBucket(ctx context.Context, path string) (*blob.Bucket, stri
 	return bucket, relativePath, nil
 }
 
+// Reader opens a reader on the given path
+// Internally a bucket is opened and cached. The storageProvider is discovered based on the path.
 func (o *opener) Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (io.ReadCloser, error) {
 	bucket, relativePath, err := o.getBucket(ctx, path)
 	if err != nil {
@@ -93,7 +100,8 @@ func (o *opener) Reader(ctx context.Context, path string, opts *blob.ReaderOptio
 	return reader, nil
 }
 
-// Writer returns a writer that overwrites the path.
+// Writer opens a writer on the given path
+// Internally a bucket is opened and cached. The storageProvider is discovered based on the path.
 func (o *opener) Writer(ctx context.Context, path string, opts *blob.WriterOptions) (io.WriteCloser, error) {
 	bucket, relativePath, err := o.getBucket(ctx, path)
 	if err != nil {
@@ -107,10 +115,10 @@ func (o *opener) Writer(ctx context.Context, path string, opts *blob.WriterOptio
 }
 
 // ErrNotFoundTest can be used for unit tests to simulate NotFound errors.
-// This is required because gocloud doesn't exposes its errors.
+// This is required because gocloud doesn't expose its errors.
 var ErrNotFoundTest = fmt.Errorf("not found error which should only be used in tests")
 
-// IsNotExist will return true if the error is because the object does not exist.
+// IsNotExist will return true if the error shows that the object does not exist.
 func IsNotExist(err error) bool {
 	if err == ErrNotFoundTest {
 		return true
