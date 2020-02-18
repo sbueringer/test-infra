@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -56,10 +57,15 @@ type options struct {
 	tokenBurst    int
 	tokensPerHour int
 
-	// The following are used for reading/writing to GCS.
+	// Deprecated: The following are used for reading/writing to GCS. Please use blobStorageCredentialsFile instead
 	gcsCredentialsFile string
+	// blobStorageCredentialsFile is used for reading/writing to block storage.
+	// If you want to write to "file://" paths, this parameter is optional.
+	// For all non-file paths either the credentials from this file are parsed or the gocloud credential discovery is used.
+	// For more details see the pkg/io/v2/providers pkg.
+	blobStorageCredentialsFile string
 	// statusURI where Status-reconciler stores last known state, i.e. configuration.
-	// Can be a /local/path or gs://path/to/object.
+	// Can be file:///local/path, gs://path/to/object or s3://path/to/object.
 	// GCS writes will use the bucket's default acl for new objects. Ensure both that
 	// a) the gcs credentials can write to this bucket
 	// b) the default acls do not expose any private info
@@ -74,7 +80,8 @@ func gatherOptions() options {
 	fs.StringVar(&o.jobConfigPath, "job-config-path", "", "Path to prow job configs.")
 	fs.StringVar(&o.pluginConfig, "plugin-config", "/etc/plugins/plugins.yaml", "Path to plugin config file.")
 	fs.StringVar(&o.gcsCredentialsFile, "gcs-credentials-file", "", "File where Google Cloud authentication credentials are stored. Required for GCS writes.")
-	fs.StringVar(&o.statusURI, "status-path", "", "The /local/path or gs://path/to/object to store status controller state. GCS writes will use the default object ACL for the bucket.")
+	fs.StringVar(&o.blobStorageCredentialsFile, "blob-storage-credentials-file", "", "File where one of the supported credential formats are stored. For supported formats see https://github.com/kubernetes/test-infra/blob/master/pkg/io/v2/providers/providers.go")
+	fs.StringVar(&o.statusURI, "status-path", "", "The file:///local/path or gs://path/to/object to store status controller state. GCS writes will use the default object ACL for the bucket.")
 
 	fs.BoolVar(&o.continueOnError, "continue-on-error", false, "Indicates that the migration should continue if context migration fails for an individual PR.")
 	fs.Var(&o.addedPresubmitBlacklist, "blacklist", "Org or org/repo to ignore new added presubmits for, set more than once to add more.")
@@ -94,6 +101,12 @@ func (o *options) Validate() error {
 		if err := group.Validate(o.dryRun); err != nil {
 			return err
 		}
+	}
+	if o.gcsCredentialsFile != "" {
+		logrus.Error("-gcs-credentials-file is deprecated.  Use -blob-storage-credentials-file instead.")
+	}
+	if o.gcsCredentialsFile != "" && o.blobStorageCredentialsFile != "" {
+		return fmt.Errorf("please set either -blob-storage-credentials-file or -gcs-credentials-file but not both")
 	}
 
 	return nil
@@ -143,11 +156,18 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	opener, err := iov2.NewOpener(ctx, o.gcsCredentialsFile)
+	credentialsFile := o.blobStorageCredentialsFile
+	if credentialsFile == "" {
+		credentialsFile = o.gcsCredentialsFile
+	}
+	opener, err := iov2.NewOpener(ctx, credentialsFile)
 	if err != nil {
 		entry := logrus.WithError(err)
 		if p := o.gcsCredentialsFile; p != "" {
 			entry = entry.WithField("gcs-credentials-file", p)
+		}
+		if p := o.blobStorageCredentialsFile; p != "" {
+			entry = entry.WithField("blob-storage-credentials-file", p)
 		}
 		entry.Fatal("Cannot create opener")
 	}

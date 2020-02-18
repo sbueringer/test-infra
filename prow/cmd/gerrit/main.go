@@ -42,11 +42,19 @@ import (
 )
 
 type options struct {
+	// Deprecated: The following are used for reading/writing to GCS. Please use blobStorageCredentialsFile instead
 	gcsCredentialsFile string
+	// blobStorageCredentialsFile is used for reading/writing to block storage.
+	// If you want to write to "file://" paths, this parameter is optional.
+	// For all non-file paths either the credentials from this file are parsed or the gocloud credential discovery is used.
+	// For more details see the pkg/io/v2/providers pkg.
+	blobStorageCredentialsFile string
 	cookiefilePath     string
 	configPath         string
 	jobConfigPath      string
 	projects           client.ProjectsFlag
+	// lastSyncFallback is the path to sync the latest timestamp
+	// Can be file:///local/path, gs://path/to/object or s3://path/to/object.
 	lastSyncFallback   string
 	dryRun             bool
 	kubernetes         prowflagutil.KubernetesOptions
@@ -69,8 +77,15 @@ func (o *options) Validate() error {
 		return errors.New("--last-sync-fallback must be set")
 	}
 
-	if strings.HasPrefix(o.lastSyncFallback, "gs://") && o.gcsCredentialsFile == "" {
-		logrus.WithField("last-sync-fallback", o.lastSyncFallback).Warn("--gcs-credentials-file unset, will try and access with a default service account")
+	if o.gcsCredentialsFile != "" {
+		logrus.Error("-gcs-credentials-file is deprecated.  Use -blob-storage-credentials-file instead.")
+	}
+	if o.gcsCredentialsFile != "" && o.blobStorageCredentialsFile != "" {
+		return fmt.Errorf("please set either -blob-storage-credentials-file or -gcs-credentials-file but not both")
+	}
+
+	if strings.HasPrefix(o.lastSyncFallback, "gs://") && o.gcsCredentialsFile == "" && o.blobStorageCredentialsFile == "" {
+		logrus.WithField("last-sync-fallback", o.lastSyncFallback).Warn("-gcs-credentials-file and -blob-storage-credentials-file unset, will try and access with a default service account")
 	}
 	return nil
 }
@@ -82,8 +97,9 @@ func gatherOptions(fs *flag.FlagSet, args ...string) options {
 	fs.StringVar(&o.jobConfigPath, "job-config-path", "", "Path to prow job configs")
 	fs.StringVar(&o.cookiefilePath, "cookiefile", "", "Path to git http.cookiefile, leave empty for anonymous")
 	fs.Var(&o.projects, "gerrit-projects", "Set of gerrit repos to monitor on a host example: --gerrit-host=https://android.googlesource.com=platform/build,toolchain/llvm, repeat fs for each host")
-	fs.StringVar(&o.lastSyncFallback, "last-sync-fallback", "", "Local or gs:// path to sync the latest timestamp")
+	fs.StringVar(&o.lastSyncFallback, "last-sync-fallback", "", "The file:///local/path or gs://path/to/object to sync the latest timestamp")
 	fs.StringVar(&o.gcsCredentialsFile, "gcs-credentials-file", "", "Path to GCS credentials. Required for a --last-sync-fallback=gs://path")
+	fs.StringVar(&o.blobStorageCredentialsFile, "blob-storage-credentials-file", "", "File where one of the supported credential formats are stored. For supported formats see https://github.com/kubernetes/test-infra/blob/master/pkg/io/v2/providers/providers.go")
 	fs.BoolVar(&o.dryRun, "dry-run", false, "Run in dry-run mode, performing no modifying actions.")
 	o.kubernetes.AddFlags(fs)
 	fs.Parse(args)

@@ -40,8 +40,9 @@ type Opener interface {
 }
 
 type opener struct {
-	credentials   []byte
-	cachedBuckets map[string]*blob.Bucket
+	credentials        []byte
+	cachedBuckets      map[string]*blob.Bucket
+	cachedBucketsMutex sync.Mutex
 }
 
 // NewOpener returns an opener that can read GCS, S3 and local paths.
@@ -65,6 +66,9 @@ func (o *opener) getBucket(ctx context.Context, path string) (*blob.Bucket, stri
 	if err != nil {
 		return nil, "", fmt.Errorf("could not get bucket: %w", err)
 	}
+
+	o.cachedBucketsMutex.Lock()
+	defer o.cachedBucketsMutex.Unlock()
 	if bucket, ok := o.cachedBuckets[bucketName]; ok {
 		return bucket, relativePath, nil
 	}

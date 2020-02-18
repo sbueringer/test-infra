@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -55,17 +56,22 @@ type options struct {
 	github     prowflagutil.GitHubOptions
 
 	maxRecordsPerPool int
-	// The following are used for reading/writing to GCS.
+	// Deprecated: The following are used for reading/writing to GCS. Please use blobStorageCredentialsFile instead
 	gcsCredentialsFile string
+	// blobStorageCredentialsFile is used for reading/writing to block storage.
+	// If you want to write to "file://" paths, this parameter is optional.
+	// For all non-file paths either the credentials from this file are parsed or the gocloud credential discovery is used.
+	// For more details see the pkg/io/v2/providers pkg.
+	blobStorageCredentialsFile string
 	// historyURI where Tide should store its action history.
-	// Can be a /local/path or gs://path/to/object.
+	// Can be file:///local/path, gs://path/to/object or s3://path/to/object.
 	// GCS writes will use the bucket's default acl for new objects. Ensure both that
 	// a) the gcs credentials can write to this bucket
 	// b) the default acls do not expose any private info
 	historyURI string
 
 	// statusURI where Tide store status update state.
-	// Can be a /local/path or gs://path/to/object.
+	// Can be a file:///local/path, gs://path/to/object or s3://path/to/object.
 	// GCS writes will use the bucket's default acl for new objects. Ensure both that
 	// a) the gcs credentials can write to this bucket
 	// b) the default acls do not expose any private info
@@ -77,6 +83,12 @@ func (o *options) Validate() error {
 		if err := group.Validate(o.dryRun); err != nil {
 			return err
 		}
+	}
+	if o.gcsCredentialsFile != "" {
+		logrus.Error("-gcs-credentials-file is deprecated.  Use -blob-storage-credentials-file instead.")
+	}
+	if o.gcsCredentialsFile != "" && o.blobStorageCredentialsFile != "" {
+		return fmt.Errorf("please set either -blob-storage-credentials-file or -gcs-credentials-file but not both")
 	}
 
 	return nil
@@ -97,8 +109,9 @@ func gatherOptions(fs *flag.FlagSet, args ...string) options {
 
 	fs.IntVar(&o.maxRecordsPerPool, "max-records-per-pool", 1000, "The maximum number of history records stored for an individual Tide pool.")
 	fs.StringVar(&o.gcsCredentialsFile, "gcs-credentials-file", "", "File where Google Cloud authentication credentials are stored. Required for GCS writes.")
-	fs.StringVar(&o.historyURI, "history-uri", "", "The /local/path or gs://path/to/object to store tide action history. GCS writes will use the default object ACL for the bucket")
-	fs.StringVar(&o.statusURI, "status-path", "", "The /local/path or gs://path/to/object to store status controller state. GCS writes will use the default object ACL for the bucket.")
+	fs.StringVar(&o.blobStorageCredentialsFile, "blob-storage-credentials-file", "", "File where one of the supported credential formats are stored. For supported formats see https://github.com/kubernetes/test-infra/blob/master/pkg/io/v2/providers/providers.go")
+	fs.StringVar(&o.historyURI, "history-uri", "", "The file:///local/path or gs://path/to/object to store tide action history. GCS writes will use the default object ACL for the bucket")
+	fs.StringVar(&o.statusURI, "status-path", "", "The file:///local/path or gs://path/to/object to store status controller state. GCS writes will use the default object ACL for the bucket.")
 
 	fs.Parse(args)
 	o.configPath = config.ConfigPath(o.configPath)
@@ -117,11 +130,18 @@ func main() {
 		logrus.WithError(err).Fatal("Invalid options")
 	}
 
-	opener, err := iov2.NewOpener(context.Background(), o.gcsCredentialsFile)
+	credentialsFile := o.blobStorageCredentialsFile
+	if credentialsFile == "" {
+		credentialsFile = o.gcsCredentialsFile
+	}
+	opener, err := iov2.NewOpener(context.Background(), credentialsFile)
 	if err != nil {
 		entry := logrus.WithError(err)
 		if p := o.gcsCredentialsFile; p != "" {
 			entry = entry.WithField("gcs-credentials-file", p)
+		}
+		if p := o.blobStorageCredentialsFile; p != "" {
+			entry = entry.WithField("blob-storage-credentials-file", p)
 		}
 		entry.Fatal("Cannot create opener")
 	}

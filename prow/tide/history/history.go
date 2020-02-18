@@ -38,6 +38,11 @@ import (
 // Mock out time for unit testing.
 var now = time.Now
 
+type Opener interface {
+	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (iov2.ReadCloser, error)
+	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (iov2.WriteCloser, error)
+}
+
 // History uses a `*recordLog` per pool to store a record of recent actions that
 // Tide has taken. Using a log per pool ensure that history is retained
 // for inactive pools even if other pools are very active.
@@ -46,13 +51,8 @@ type History struct {
 	sync.Mutex
 	logSizeLimit int
 
-	opener iov2.Opener
+	opener Opener
 	path   string
-}
-
-type Opener interface {
-	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (iov2.ReadCloser, error)
-	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (iov2.WriteCloser, error)
 }
 
 func readHistory(maxRecordsPerKey int, opener Opener, path string) (map[string]*recordLog, error) {
@@ -122,7 +122,7 @@ type Record struct {
 }
 
 // New creates a new History struct with the specificed recordLog size limit.
-func New(maxRecordsPerKey int, opener iov2.Opener, path string) (*History, error) {
+func New(maxRecordsPerKey int, opener Opener, path string) (*History, error) {
 	hist := &History{
 		logs:         map[string]*recordLog{},
 		logSizeLimit: maxRecordsPerKey,

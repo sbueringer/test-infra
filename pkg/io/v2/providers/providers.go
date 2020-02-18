@@ -36,8 +36,9 @@ import (
 )
 
 const (
-	// Required as long as paths without prefix are used
-	defaultStorageProviderName = "gs"
+	// defaults to file because local paths were
+	// previously given without file:// prefix
+	defaultStorageProviderName = "file"
 
 	storageSeparator = "://"
 
@@ -48,15 +49,21 @@ const (
 
 var storageProviders = []string{providerFile, providerGS, providerS3}
 
+// TODO add godoc about supported formats
 func GetBucket(ctx context.Context, credentials []byte, path string) (*blob.Bucket, error) {
 	storageProvider, bucket, _, err := ParseStoragePath(path)
 	if err != nil {
 		return nil, err
 	}
+	if storageProvider == providerFile || len(credentials) == 0 {
+		bkt, err := blob.OpenBucket(context.Background(), fmt.Sprintf("%s://%s", storageProvider, bucket))
+		if err != nil {
+			return nil, fmt.Errorf("error opening file bucket: %v", err)
+		}
+		return bkt, nil
+	}
 
 	switch storageProvider {
-	case providerFile:
-		return getFileBucket(bucket)
 	case providerGS:
 		return getGCSBucket(ctx, credentials, bucket)
 	case providerS3:
@@ -64,14 +71,6 @@ func GetBucket(ctx context.Context, credentials []byte, path string) (*blob.Buck
 	default:
 		return nil, fmt.Errorf("unknown storageProvider: %s", storageProvider)
 	}
-}
-
-func getFileBucket(bucket string) (*blob.Bucket, error) {
-	bkt, err := blob.OpenBucket(context.Background(), "file://"+bucket)
-	if err != nil {
-		return nil, fmt.Errorf("error opening file bucket: %v", err)
-	}
-	return bkt, nil
 }
 
 func getGCSBucket(ctx context.Context, credentials []byte, bucketName string) (*blob.Bucket, error) {
@@ -94,6 +93,9 @@ func getGCSBucket(ctx context.Context, credentials []byte, bucketName string) (*
 	return bkt, nil
 }
 
+// s3Credentials are credentials used to access S3 or an S3-compatible storage service
+// Endpoint is an optional property. Default is the AWS S3 endpoint. If set, the specified
+// endpoint will be used instead.
 type s3Credentials struct {
 	Region           string `json:"region"`
 	Endpoint         string `json:"endpoint"`
