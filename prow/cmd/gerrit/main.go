@@ -49,15 +49,15 @@ type options struct {
 	// For all non-file paths either the credentials from this file are parsed or the gocloud credential discovery is used.
 	// For more details see the pkg/io/v2/providers pkg.
 	blobStorageCredentialsFile string
-	cookiefilePath     string
-	configPath         string
-	jobConfigPath      string
-	projects           client.ProjectsFlag
+	cookiefilePath             string
+	configPath                 string
+	jobConfigPath              string
+	projects                   client.ProjectsFlag
 	// lastSyncFallback is the path to sync the latest timestamp
 	// Can be file:///local/path, gs://path/to/object or s3://path/to/object.
-	lastSyncFallback   string
-	dryRun             bool
-	kubernetes         prowflagutil.KubernetesOptions
+	lastSyncFallback string
+	dryRun           bool
+	kubernetes       prowflagutil.KubernetesOptions
 }
 
 func (o *options) Validate() error {

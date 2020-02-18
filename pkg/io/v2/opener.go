@@ -19,13 +19,15 @@ package v2
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"sync"
+
 	"github.com/sirupsen/logrus"
 	"gocloud.dev/blob"
 	"gocloud.dev/gcerrors"
-	"io"
-	"io/ioutil"
+
 	"k8s.io/test-infra/pkg/io/v2/providers"
-	"sync"
 )
 
 // Aliases to types in the standard library
