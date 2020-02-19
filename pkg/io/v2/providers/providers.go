@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"path"
 	"strings"
 
@@ -58,19 +59,7 @@ var storageProviders = []string{providerFile, providerGS, providerS3}
 //
 // If we specify credentials and an gs:// or s3:// path is used, credentials must be given in one of the
 // following formats:
-// * Google Cloud Storage (gs://):
-//    {
-//      "type": "service_account",
-//      "project_id": "<project_id>",
-//      "private_key_id": "<private_key_id>",
-//      "private_key": "<private_key>",
-//      "client_email": "<client_email>",
-//      "client_id": "<client_id>",
-//      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-//      "token_uri": "https://oauth2.googleapis.com/token",
-//      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-//      "client_x509_cert_url": "<client_x509_cert_url>"
-//    }
+// * Google Cloud Storage (gs://): a service account key
 // * AWS S3 (s3://):
 //    {
 //      "region": "us-east-1",
@@ -91,22 +80,23 @@ func GetBucket(ctx context.Context, credentials []byte, path string) (*blob.Buck
 	if err != nil {
 		return nil, err
 	}
-	if storageProvider == providerFile || len(credentials) == 0 {
-		bkt, err := blob.OpenBucket(context.Background(), fmt.Sprintf("%s://%s", storageProvider, bucket))
-		if err != nil {
-			return nil, fmt.Errorf("error opening file bucket: %v", err)
+
+	if len(credentials) > 0 {
+		switch storageProvider {
+		case providerGS:
+			return getGCSBucket(ctx, credentials, bucket)
+		case providerS3:
+			return getS3Bucket(ctx, credentials, bucket)
+		default:
+			return nil, fmt.Errorf("passing credentials is only supported for S3 and GCS not %s", storageProvider)
 		}
-		return bkt, nil
 	}
 
-	switch storageProvider {
-	case providerGS:
-		return getGCSBucket(ctx, credentials, bucket)
-	case providerS3:
-		return getS3Bucket(ctx, credentials, bucket)
-	default:
-		return nil, fmt.Errorf("unknown storageProvider: %s", storageProvider)
+	bkt, err := blob.OpenBucket(context.Background(), fmt.Sprintf("%s://%s", storageProvider, bucket))
+	if err != nil {
+		return nil, fmt.Errorf("error opening file bucket: %v", err)
 	}
+	return bkt, nil
 }
 
 // getGCSBucket opens a gocloud blob.Bucket based on given credentials in the Google
@@ -176,40 +166,33 @@ func getS3Bucket(ctx context.Context, creds []byte, bucketName string) (*blob.Bu
 // Currently detected storageProviders are GS, S3 and file.
 // Paths with a leading / instead of a storageProvider prefix are treated as file paths for backwards
 // compatibility reasons.
-// File paths are split into a directory and a file. Directory is returned as bucket, file is returned
+// File paths are split into a directory and a file. Directory is returned as bucket, file is returned.
 // as relativePath.
 // For all other paths the first part is treated as storageProvider prefix, the second segment as bucket
-// and everything after the bucket as relativePath
+// and everything after the bucket as relativePath.
 func ParseStoragePath(storagePath string) (storageProvider, bucket, relativePath string, err error) {
+	if strings.HasPrefix(storagePath, "/") {
+		storagePath = fmt.Sprintf("file://%s", storagePath)
+	}
 	if strings.HasPrefix(storagePath, "gcs://") {
 		storagePath = strings.Replace(storagePath, "gcs://", "gs://", 1)
 	}
-	for _, spName := range storageProviders {
-		if strings.HasPrefix(storagePath, spName+storageSeparator) {
-			storagePath = strings.TrimPrefix(storagePath, spName+storageSeparator)
-			storageProvider = spName
-			break
-		}
+
+	parsedPath, err := url.Parse(storagePath)
+	if err != nil {
+		return "", "", "", fmt.Errorf("unable to parse path %q: %v", storagePath, err)
 	}
 
-	// we didn't match one of the registered provider
-	if storageProvider == "" {
-		// if storagePath starts with / default to file (for compatibility reasons)
-		if strings.HasPrefix(storagePath, "/") {
-			storageProvider = defaultStorageProviderName
-		} else { // if not fail with error
-			return "", "", "", fmt.Errorf("couldn't detect storageProvider for path %s", storagePath)
-		}
-	}
-
+	storageProvider = parsedPath.Scheme
 	if storageProvider == "file" {
-		dir, f := path.Split(storagePath)
-		return storageProvider, dir, f, nil
+		bucket, relativePath = path.Split(parsedPath.Path)
+	} else {
+		bucket, relativePath = parsedPath.Host, parsedPath.Path
+		relativePath = strings.TrimPrefix(relativePath, "/")
 	}
 
-	pathSplit := strings.Split(storagePath, "/")
-	if len(pathSplit) == 1 && pathSplit[0] == "" {
-		return "", "", "", fmt.Errorf("path %q is not a valid %s path", storagePath, storageProvider)
+	if bucket == "" {
+		return "", "", "", fmt.Errorf("could not find bucket in storagePath %q", storagePath)
 	}
-	return storageProvider, pathSplit[0], path.Join(pathSplit[1:]...), nil
+	return storageProvider, bucket, relativePath, nil
 }

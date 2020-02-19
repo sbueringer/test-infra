@@ -104,9 +104,11 @@ func TestParseStoragePath(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "parse unknown prefix path fails",
-			args:    args{storagePath: "s4://prow-artifacts/pr-logs/bazel-build/test.log"},
-			wantErr: true,
+			name:                "parse unknown prefix path",
+			args:                args{storagePath: "s4://prow-artifacts/pr-logs/bazel-build/test.log"},
+			wantStorageProvider: "s4",
+			wantBucket:          "prow-artifacts",
+			wantRelativePath:    "pr-logs/bazel-build/test.log",
 		},
 	}
 	for _, tt := range tests {
