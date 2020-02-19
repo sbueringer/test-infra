@@ -31,6 +31,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gocloud.dev/blob"
 
+	"k8s.io/test-infra/pkg/io"
 	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"k8s.io/test-infra/prow/config"
 	prowflagutil "k8s.io/test-infra/prow/flagutil"
@@ -49,10 +50,12 @@ type options struct {
 	// For all non-file paths either the credentials from this file are parsed or the gocloud credential discovery is used.
 	// For more details see the pkg/io/v2/providers pkg.
 	blobStorageCredentialsFile string
-	cookiefilePath             string
-	configPath                 string
-	jobConfigPath              string
-	projects                   client.ProjectsFlag
+	// useGenericBlobStorage enables the usage of the new generic blob storage package
+	useGenericBlobStorage bool
+	cookiefilePath        string
+	configPath            string
+	jobConfigPath         string
+	projects              client.ProjectsFlag
 	// lastSyncFallback is the path to sync the latest timestamp
 	// Can be file:///local/path, gs://path/to/object or s3://path/to/object.
 	lastSyncFallback string
@@ -100,6 +103,7 @@ func gatherOptions(fs *flag.FlagSet, args ...string) options {
 	fs.StringVar(&o.lastSyncFallback, "last-sync-fallback", "", "The file:///local/path or gs://path/to/object to sync the latest timestamp")
 	fs.StringVar(&o.gcsCredentialsFile, "gcs-credentials-file", "", "Path to GCS credentials. Required for a --last-sync-fallback=gs://path")
 	fs.StringVar(&o.blobStorageCredentialsFile, "blob-storage-credentials-file", "", "File where one of the supported credential formats are stored. For supported formats see https://github.com/kubernetes/test-infra/blob/master/pkg/io/v2/providers/providers.go")
+	fs.BoolVar(&o.useGenericBlobStorage, "use-generic-blob-storage", false, "If this flag is set to true, the new generic blob storage package is used.")
 	fs.BoolVar(&o.dryRun, "dry-run", false, "Run in dry-run mode, performing no modifying actions.")
 	o.kubernetes.AddFlags(fs)
 	fs.Parse(args)
@@ -259,7 +263,16 @@ func main() {
 	}
 
 	ctx := context.Background() // TODO(fejta): use something better
-	op, err := iov2.NewOpener(ctx, o.gcsCredentialsFile)
+	credentialsFile := o.blobStorageCredentialsFile
+	if credentialsFile == "" {
+		credentialsFile = o.gcsCredentialsFile
+	}
+	var op iov2.Opener
+	if o.useGenericBlobStorage {
+		op, err = iov2.NewOpener(credentialsFile)
+	} else {
+		op, err = io.NewOpener(ctx, credentialsFile)
+	}
 	if err != nil {
 		logrus.WithError(err).Fatal("Error creating opener")
 	}

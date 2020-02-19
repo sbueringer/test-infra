@@ -26,6 +26,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
+	"gocloud.dev/blob"
 	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/testgrid/util/gcs" // TODO(fejta): move this logic here
@@ -43,8 +44,8 @@ type (
 
 // Opener has methods to read and write paths
 type Opener interface {
-	Reader(ctx context.Context, path string) (ReadCloser, error)
-	Writer(ctx context.Context, path string) (WriteCloser, error)
+	Reader(ctx context.Context, path string, opts *blob.ReaderOptions) (ReadCloser, error)
+	Writer(ctx context.Context, path string, opts *blob.WriterOptions) (WriteCloser, error)
 }
 
 type opener struct {
@@ -98,7 +99,7 @@ func (o opener) openGCS(path string) (*storage.ObjectHandle, error) {
 }
 
 // Reader will open the path for reading, returning an IsNotExist() error when missing
-func (o opener) Reader(ctx context.Context, path string) (io.ReadCloser, error) {
+func (o opener) Reader(ctx context.Context, path string, _ *blob.ReaderOptions) (io.ReadCloser, error) {
 	g, err := o.openGCS(path)
 	if err != nil {
 		return nil, fmt.Errorf("bad gcs path: %v", err)
@@ -110,7 +111,7 @@ func (o opener) Reader(ctx context.Context, path string) (io.ReadCloser, error) 
 }
 
 // Writer returns a writer that overwrites the path.
-func (o opener) Writer(ctx context.Context, path string) (io.WriteCloser, error) {
+func (o opener) Writer(ctx context.Context, path string, _ *blob.WriterOptions) (io.WriteCloser, error) {
 	g, err := o.openGCS(path)
 	if err != nil {
 		return nil, fmt.Errorf("bad gcs path: %v", err)

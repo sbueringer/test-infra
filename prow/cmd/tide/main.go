@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"k8s.io/test-infra/pkg/flagutil"
+	"k8s.io/test-infra/pkg/io"
 	iov2 "k8s.io/test-infra/pkg/io/v2"
 	"k8s.io/test-infra/prow/config"
 	"k8s.io/test-infra/prow/config/secret"
@@ -63,6 +64,8 @@ type options struct {
 	// For all non-file paths either the credentials from this file are parsed or the gocloud credential discovery is used.
 	// For more details see the pkg/io/v2/providers pkg.
 	blobStorageCredentialsFile string
+	// useGenericBlobStorage enables the usage of the new generic blob storage package
+	useGenericBlobStorage bool
 	// historyURI where Tide should store its action history.
 	// Can be file:///local/path, gs://path/to/object or s3://path/to/object.
 	// GCS writes will use the bucket's default acl for new objects. Ensure both that
@@ -110,6 +113,7 @@ func gatherOptions(fs *flag.FlagSet, args ...string) options {
 	fs.IntVar(&o.maxRecordsPerPool, "max-records-per-pool", 1000, "The maximum number of history records stored for an individual Tide pool.")
 	fs.StringVar(&o.gcsCredentialsFile, "gcs-credentials-file", "", "File where Google Cloud authentication credentials are stored. Required for GCS writes.")
 	fs.StringVar(&o.blobStorageCredentialsFile, "blob-storage-credentials-file", "", "File where one of the supported credential formats are stored. For supported formats see https://github.com/kubernetes/test-infra/blob/master/pkg/io/v2/providers/providers.go")
+	fs.BoolVar(&o.useGenericBlobStorage, "use-generic-blob-storage", false, "If this flag is set to true, the new generic blob storage package is used.")
 	fs.StringVar(&o.historyURI, "history-uri", "", "The file:///local/path or gs://path/to/object to store tide action history. GCS writes will use the default object ACL for the bucket")
 	fs.StringVar(&o.statusURI, "status-path", "", "The file:///local/path or gs://path/to/object to store status controller state. GCS writes will use the default object ACL for the bucket.")
 
@@ -134,7 +138,13 @@ func main() {
 	if credentialsFile == "" {
 		credentialsFile = o.gcsCredentialsFile
 	}
-	opener, err := iov2.NewOpener(context.Background(), credentialsFile)
+	var opener iov2.Opener
+	var err error
+	if o.useGenericBlobStorage {
+		opener, err = iov2.NewOpener(credentialsFile)
+	} else {
+		opener, err = io.NewOpener(context.Background(), credentialsFile)
+	}
 	if err != nil {
 		entry := logrus.WithError(err)
 		if p := o.gcsCredentialsFile; p != "" {

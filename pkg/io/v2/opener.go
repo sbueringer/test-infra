@@ -49,8 +49,7 @@ type opener struct {
 }
 
 // NewOpener returns an opener that can read GCS, S3 and local paths.
-// TODO: reference doc of providers.GetBucket, duplicate the doc or just document it here instead of in providers?
-func NewOpener(ctx context.Context, credentialsFile string) (Opener, error) {
+func NewOpener(credentialsFile string) (Opener, error) {
 	var credentials []byte
 	var err error
 	if credentialsFile != "" {

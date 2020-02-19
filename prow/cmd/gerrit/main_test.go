@@ -137,7 +137,7 @@ func TestSyncTime(t *testing.T) {
 	path := filepath.Join(dir, "value.txt")
 	var noCreds string
 	ctx := context.Background()
-	open, err := iov2.NewOpener(ctx, noCreds)
+	open, err := iov2.NewOpener(noCreds)
 	if err != nil {
 		t.Fatalf("Failed to create opener: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestNewProjectAddition(t *testing.T) {
 
 	var noCreds string
 	ctx := context.Background()
-	open, err := iov2.NewOpener(ctx, noCreds)
+	open, err := iov2.NewOpener(noCreds)
 	if err != nil {
 		t.Fatalf("Failed to create opener: %v", err)
 	}
