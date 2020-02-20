@@ -92,7 +92,7 @@ func GetBucket(ctx context.Context, credentials []byte, path string) (*blob.Buck
 		}
 	}
 
-	bkt, err := blob.OpenBucket(context.Background(), fmt.Sprintf("%s://%s", storageProvider, bucket))
+	bkt, err := blob.OpenBucket(ctx, fmt.Sprintf("%s://%s", storageProvider, bucket))
 	if err != nil {
 		return nil, fmt.Errorf("error opening file bucket: %v", err)
 	}

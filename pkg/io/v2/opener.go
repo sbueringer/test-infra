@@ -18,9 +18,11 @@ package v2
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -49,6 +51,10 @@ type opener struct {
 }
 
 // NewOpener returns an opener that can read GCS, S3 and local paths.
+// credentialsFile may also be empty
+// For local paths it has to be empty
+// In all other cases gocloud auto-discovery is used to detect credentials, if credentialsFile is empty.
+// For more details about the possible content of the credentialsFile see pkg/io/v2/providers.GetBucket
 func NewOpener(credentialsFile string) (Opener, error) {
 	var credentials []byte
 	var err error
@@ -122,6 +128,9 @@ var ErrNotFoundTest = fmt.Errorf("not found error which should only be used in t
 // IsNotExist will return true if the error shows that the object does not exist.
 func IsNotExist(err error) bool {
 	if err == ErrNotFoundTest {
+		return true
+	}
+	if errors.Is(err, os.ErrNotExist) {
 		return true
 	}
 	return gcerrors.Code(err) == gcerrors.NotFound

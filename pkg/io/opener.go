@@ -82,6 +82,7 @@ func LogClose(c io.Closer) {
 }
 
 func (o opener) openGCS(path string) (*storage.ObjectHandle, error) {
+	path = strings.TrimPrefix(path, "file://")
 	if !strings.HasPrefix(path, "gs://") {
 		return nil, nil
 	}
@@ -100,6 +101,7 @@ func (o opener) openGCS(path string) (*storage.ObjectHandle, error) {
 
 // Reader will open the path for reading, returning an IsNotExist() error when missing
 func (o opener) Reader(ctx context.Context, path string, _ *blob.ReaderOptions) (io.ReadCloser, error) {
+	path = strings.TrimPrefix(path, "file://")
 	g, err := o.openGCS(path)
 	if err != nil {
 		return nil, fmt.Errorf("bad gcs path: %v", err)
@@ -112,6 +114,7 @@ func (o opener) Reader(ctx context.Context, path string, _ *blob.ReaderOptions) 
 
 // Writer returns a writer that overwrites the path.
 func (o opener) Writer(ctx context.Context, path string, _ *blob.WriterOptions) (io.WriteCloser, error) {
+	path = strings.TrimPrefix(path, "file://")
 	g, err := o.openGCS(path)
 	if err != nil {
 		return nil, fmt.Errorf("bad gcs path: %v", err)

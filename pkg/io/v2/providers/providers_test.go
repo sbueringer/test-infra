@@ -115,7 +115,7 @@ func TestParseStoragePath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gotStorageProvider, gotBucket, gotRelativePath, err := providers.ParseStoragePath(tt.args.storagePath)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseStoragePath() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("ParseStoragePath() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if gotStorageProvider != tt.wantStorageProvider {

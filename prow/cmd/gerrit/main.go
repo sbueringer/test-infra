@@ -81,7 +81,7 @@ func (o *options) Validate() error {
 	}
 
 	if o.gcsCredentialsFile != "" {
-		logrus.Error("-gcs-credentials-file is deprecated.  Use -blob-storage-credentials-file instead.")
+		logrus.Warning("-gcs-credentials-file is deprecated and will be removed in September 2020. Use -blob-storage-credentials-file instead.")
 	}
 	if o.gcsCredentialsFile != "" && o.blobStorageCredentialsFile != "" {
 		return fmt.Errorf("please set either -blob-storage-credentials-file or -gcs-credentials-file but not both")
