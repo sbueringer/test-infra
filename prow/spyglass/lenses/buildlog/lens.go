@@ -160,6 +160,20 @@ func (lens Lens) Body(artifacts []api.Artifact, resourceDir string, data string,
 	highlightRe := getHighlightRegex(rawConfig)
 	// Read log artifacts and construct template structs
 	for _, a := range artifacts {
+		if strings.HasSuffix(a.JobPath(), "BlackDuck_RiskReport.pdf") {
+			av := LogArtifactView{
+				ArtifactName: "FOSS Report",
+				ArtifactLink: a.CanonicalLink(),
+			}
+			buildLogsView.LogViews = append(buildLogsView.LogViews, av)
+			continue
+		}
+	}
+	// handle build-log
+	for _, a := range artifacts {
+		if strings.HasSuffix(a.JobPath(), "BlackDuck_RiskReport.pdf") {
+			continue
+		}
 		av := LogArtifactView{
 			ArtifactName: a.JobPath(),
 			ArtifactLink: a.CanonicalLink(),
