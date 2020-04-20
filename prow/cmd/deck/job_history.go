@@ -360,6 +360,8 @@ func getBuildData(ctx context.Context, bucket storageBucket, dir string) (buildD
 	if finished.Result != "" {
 		b.Result = finished.Result
 	}
+	// Fix different results from finished.jsons from crier or sidecar
+	b.Result = strings.ToUpper(b.Result)
 	return b, nil
 }
 
