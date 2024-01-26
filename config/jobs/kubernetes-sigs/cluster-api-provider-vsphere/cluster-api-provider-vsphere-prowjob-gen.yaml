@@ -22,6 +22,12 @@ prow_ignored:
       testImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20240111-cf1d81388e-1.28"
       # interval for e2e jobs
       interval: "24h"
+      upgradesInterval: "24h"
+      upgrades:
+      - from: "1.28"
+        to: "1.29"
+      - from: "1.29"
+        to: "1.30"
     release-1.8:
       testImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20240111-cf1d81388e-1.27"
       # interval for e2e jobs

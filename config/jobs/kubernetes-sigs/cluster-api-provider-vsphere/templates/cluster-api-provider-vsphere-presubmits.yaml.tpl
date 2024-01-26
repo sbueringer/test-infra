@@ -201,7 +201,7 @@ presubmits:
       testgrid-dashboards: vmware-cluster-api-provider-vsphere, sig-cluster-lifecycle-cluster-api-provider-vsphere
       testgrid-tab-name: pr-e2e-{{ ReplaceAll $.branch "." "-" }}
       description: Runs all e2e tests
-{{ if eq $.branch "release-1.5" "release-1.6" "release-1.7" "release-1.8" "release-1.9" | not }}
+{{ if eq $.branch "release-1.5" "release-1.6" "release-1.7" "release-1.8" | not }}
   - name: pull-cluster-api-provider-vsphere-e2e-upgrade-{{ ReplaceAll (last $.config.Upgrades).From "." "-" }}-{{ ReplaceAll (last $.config.Upgrades).To "." "-" }}-{{ ReplaceAll $.branch "." "-" }}
     labels:
       preset-dind-enabled: "true"
@@ -240,7 +240,7 @@ presubmits:
     annotations:
       testgrid-dashboards: vmware-cluster-api-provider-vsphere, sig-cluster-lifecycle-cluster-api-provider-vsphere
       testgrid-tab-name: pr-e2e-{{ ReplaceAll $.branch "." "-" }}-{{ ReplaceAll (last $.config.Upgrades).From "." "-" }}-{{ ReplaceAll (last $.config.Upgrades).To "." "-" }}
-{{ end -}}
+{{ end }}
   - name: pull-cluster-api-provider-vsphere-e2e-conformance-{{ ReplaceAll $.branch "." "-" }}
     branches:
     - ^{{ $.branch }}$
@@ -280,7 +280,7 @@ presubmits:
       testgrid-dashboards: vmware-cluster-api-provider-vsphere, sig-cluster-lifecycle-cluster-api-provider-vsphere
       testgrid-tab-name: pr-e2e-conformance-{{ ReplaceAll $.branch "." "-" }}
       description: Runs conformance tests for CAPV
-{{ if eq $.branch "release-1.5" "release-1.6" "release-1.7" "release-1.8" "release-1.9" | not }}
+{{ if eq $.branch "release-1.5" "release-1.6" "release-1.7" "release-1.8" | not }}
   - name: pull-cluster-api-provider-vsphere-e2e-conformance-ci-latest-{{ ReplaceAll $.branch "." "-" }}
     branches:
     - ^{{ $.branch }}$

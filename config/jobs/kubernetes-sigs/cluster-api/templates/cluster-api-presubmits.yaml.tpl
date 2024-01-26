@@ -411,70 +411,70 @@ presubmits:
       testgrid-dashboards: sig-cluster-lifecycle-cluster-api{{ if eq $.branch "main" | not -}}{{ TrimPrefix $.branch "release" }}{{- end }}
       testgrid-tab-name: capi-pr-e2e-{{ ReplaceAll $.branch "." "-" }}-{{ ReplaceAll (last $.config.Upgrades).From "." "-" }}-{{ ReplaceAll (last $.config.Upgrades).To "." "-" }}
 {{ if eq $.branch "release-1.4" "release-1.5" "release-1.6" | not }}
-- name: pull-cluster-api-e2e-conformance-{{ ReplaceAll $.branch "." "-" }}
-  cluster: eks-prow-build-cluster
-  labels:
-    preset-dind-enabled: "true"
-    preset-kind-volume-mounts: "true"
-  decorate: true
-  always_run: false
-  branches:
-  # The script this job runs is not in all branches.
-  - ^{{ $.branch }}$
-  path_alias: sigs.k8s.io/cluster-api
-  spec:
-    containers:
-    - image: {{ $.config.TestImage }}
-      args:
-      - runner.sh
-      - "./scripts/ci-e2e.sh"
-      env:
-      - name: GINKGO_FOCUS
-        value: "\\[Conformance\\] \\[K8s-Install\\]"
-      # we need privileged mode in order to do docker in docker
-      securityContext:
-        privileged: true
-      resources:
-        requests:
-          cpu: 7300m
-          memory: 32Gi
-        limits:
-          cpu: 7300m
-          memory: 32Gi
-  annotations:
-    testgrid-dashboards: sig-cluster-lifecycle-cluster-api{{ if eq $.branch "main" | not -}}{{ TrimPrefix $.branch "release" }}{{- end }}
-    testgrid-tab-name: capi-pr-e2e-conformance-{{ ReplaceAll $.branch "." "-" }}
-- name: pull-cluster-api-e2e-conformance-ci-latest-{{ ReplaceAll $.branch "." "-" }}
-  cluster: eks-prow-build-cluster
-  labels:
-    preset-dind-enabled: "true"
-    preset-kind-volume-mounts: "true"
-  decorate: true
-  always_run: false
-  branches:
-  # The script this job runs is not in all branches.
-  - ^{{ $.branch }}$
-  path_alias: sigs.k8s.io/cluster-api
-  spec:
-    containers:
-    - image: {{ $.config.TestImage }}
-      args:
-      - runner.sh
-      - "./scripts/ci-e2e.sh"
-      env:
-      - name: GINKGO_FOCUS
-        value: "\\[Conformance\\] \\[K8s-Install-ci-latest\\]"
-      # we need privileged mode in order to do docker in docker
-      securityContext:
-        privileged: true
-      resources:
-        requests:
-          cpu: 7300m
-          memory: 32Gi
-        limits:
-          cpu: 7300m
-          memory: 32Gi
-  annotations:
-    testgrid-dashboards: sig-cluster-lifecycle-cluster-api{{ if eq $.branch "main" | not -}}{{ TrimPrefix $.branch "release" }}{{- end }}
-    testgrid-tab-name: capi-pr-e2e-conformance-ci-latest-{{ ReplaceAll $.branch "." "-" }}
+  - name: pull-cluster-api-e2e-conformance-{{ ReplaceAll $.branch "." "-" }}
+    cluster: eks-prow-build-cluster
+    labels:
+      preset-dind-enabled: "true"
+      preset-kind-volume-mounts: "true"
+    decorate: true
+    always_run: false
+    branches:
+    # The script this job runs is not in all branches.
+    - ^{{ $.branch }}$
+    path_alias: sigs.k8s.io/cluster-api
+    spec:
+      containers:
+      - image: {{ $.config.TestImage }}
+        args:
+        - runner.sh
+        - "./scripts/ci-e2e.sh"
+        env:
+        - name: GINKGO_FOCUS
+          value: "\\[Conformance\\] \\[K8s-Install\\]"
+        # we need privileged mode in order to do docker in docker
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: 7300m
+            memory: 32Gi
+          limits:
+            cpu: 7300m
+            memory: 32Gi
+    annotations:
+      testgrid-dashboards: sig-cluster-lifecycle-cluster-api{{ if eq $.branch "main" | not -}}{{ TrimPrefix $.branch "release" }}{{- end }}
+      testgrid-tab-name: capi-pr-e2e-conformance-{{ ReplaceAll $.branch "." "-" }}
+  - name: pull-cluster-api-e2e-conformance-ci-latest-{{ ReplaceAll $.branch "." "-" }}
+    cluster: eks-prow-build-cluster
+    labels:
+      preset-dind-enabled: "true"
+      preset-kind-volume-mounts: "true"
+    decorate: true
+    always_run: false
+    branches:
+    # The script this job runs is not in all branches.
+    - ^{{ $.branch }}$
+    path_alias: sigs.k8s.io/cluster-api
+    spec:
+      containers:
+      - image: {{ $.config.TestImage }}
+        args:
+        - runner.sh
+        - "./scripts/ci-e2e.sh"
+        env:
+        - name: GINKGO_FOCUS
+          value: "\\[Conformance\\] \\[K8s-Install-ci-latest\\]"
+        # we need privileged mode in order to do docker in docker
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: 7300m
+            memory: 32Gi
+          limits:
+            cpu: 7300m
+            memory: 32Gi
+    annotations:
+      testgrid-dashboards: sig-cluster-lifecycle-cluster-api{{ if eq $.branch "main" | not -}}{{ TrimPrefix $.branch "release" }}{{- end }}
+      testgrid-tab-name: capi-pr-e2e-conformance-ci-latest-{{ ReplaceAll $.branch "." "-" }}
 {{ end -}}
