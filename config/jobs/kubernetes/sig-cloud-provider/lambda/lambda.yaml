@@ -101,3 +101,49 @@ periodics:
         requests:
           cpu: 4
           memory: 8Gi
+
+# Same frequency (every 6h) as the GPU-type-agnostic periodic above, but
+# pinned to gpu_1x_gh200 (arm64) and offset via cron so the two do not run
+# at the same phase. Cron fires at 03:30, 09:30, 15:30, 21:30 UTC.
+- name: ci-kubernetes-e2e-lambda-device-plugin-gpu-gh200
+  cluster: k8s-infra-prow-build
+  cron: "30 3,9,15,21 * * *"
+  labels:
+    preset-lambda-credential: "true"
+  annotations:
+    testgrid-dashboards: sig-node-gpu, lambda-gpu-periodics
+    testgrid-tab-name: ci-lambda-device-plugin-gpu-gh200
+    description: "Runs [Feature:GPUDevicePlugin] e2e tests on a Lambda Cloud gpu_1x_gh200 (arm64) instance"
+  decorate: true
+  decoration_config:
+    timeout: 2h
+  extra_refs:
+  - org: kubernetes
+    repo: kubernetes
+    base_ref: master
+    path_alias: k8s.io/kubernetes
+    workdir: true
+  - org: kubernetes
+    repo: test-infra
+    base_ref: master
+    path_alias: k8s.io/test-infra
+  spec:
+    containers:
+    - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:v20260316-e86cefa561-master
+      command:
+      - runner.sh
+      env:
+      - name: GPU_TYPE
+        value: "gpu_1x_gh200"
+      args:
+      - bash
+      - -c
+      - |
+        exec "$(go env GOPATH)/src/k8s.io/test-infra/experiment/lambda/e2e-test.sh"
+      resources:
+        limits:
+          cpu: 4
+          memory: 8Gi
+        requests:
+          cpu: 4
+          memory: 8Gi
