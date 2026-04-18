@@ -848,16 +848,6 @@ def generate_misc():
                    extra_dashboards=['kops-misc'],
                    feature_flags=['APIServerNodes']),
 
-        build_test(name_override="kops-gce-apiserver-nodes",
-                   cloud="gce",
-                   k8s_version="stable",
-                   networking="kubenet",
-                   runs_per_day=3,
-                   template_path="/home/prow/go/src/k8s.io/kops/tests/e2e/templates/apiserver-gce.yaml.tmpl",
-                   extra_flags=["--gce-service-account=default"],
-                   extra_dashboards=['kops-misc'],
-                   feature_flags=['APIServerNodes']),
-
         build_test(name_override="kops-aws-karpenter",
                    cloud="aws",
                    distro="u2404arm64",
@@ -2370,16 +2360,6 @@ def generate_presubmits_e2e():
             cloud="aws",
             template_path="/home/prow/go/src/k8s.io/kops/tests/e2e/templates/apiserver.yaml.tmpl",
             feature_flags=['APIServerNodes']
-        ),
-
-        presubmit_test(
-            name="pull-kops-e2e-gce-apiserver-nodes",
-            cloud="gce",
-            networking="kubenet",
-            template_path="/home/prow/go/src/k8s.io/kops/tests/e2e/templates/apiserver-gce.yaml.tmpl",
-            extra_flags=["--gce-service-account=default"],
-            feature_flags=['APIServerNodes'],
-            optional=True,
         ),
 
         presubmit_test(
