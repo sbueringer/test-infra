@@ -467,6 +467,7 @@ def presubmit_test(branch='master',
 ############################
 # kops-periodics-grid.yaml #
 ############################
+# pylint: disable=too-many-statements
 def generate_grid():
     results = []
     # pylint: disable=too-many-nested-blocks
@@ -518,6 +519,10 @@ def generate_grid():
                             "--topology=public",
                         ])
                     if 'rhel10' in distro or 'rocky10' in distro:
+                        if networking == 'kuberouter':
+                            # Missing support for nftables
+                            # https://github.com/cloudnativelabs/kube-router/issues/2034
+                            continue
                         # https://github.com/kubernetes/kops/issues/17915
                         extra_flags.extend([
                             "--set=cluster.spec.kubeProxy.proxyMode=nftables",
