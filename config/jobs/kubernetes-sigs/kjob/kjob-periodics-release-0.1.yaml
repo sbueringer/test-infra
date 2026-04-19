@@ -3,7 +3,7 @@ periodics:
     name: periodic-kjob-test-unit-release-0-1
     cluster: eks-prow-build-cluster
     annotations:
-      testgrid-dashboards: sig-apps
+      testgrid-dashboards: sig-apps-kjob-periodics
       testgrid-tab-name: periodic-kjob-test-unit-release-0-1
       testgrid-alert-email: kjob-alerts@kubernetes.io
       testgrid-num-failures-to-alert: '1'
@@ -43,7 +43,7 @@ periodics:
     name: periodic-kjob-test-integration-release-0-1
     cluster: eks-prow-build-cluster
     annotations:
-      testgrid-dashboards: sig-apps
+      testgrid-dashboards: sig-apps-kjob-periodics
       testgrid-tab-name: periodic-kjob-test-integration-release-0-1
       testgrid-alert-email: kjob-alerts@kubernetes.io
       testgrid-num-failures-to-alert: '1'
@@ -81,7 +81,7 @@ periodics:
     name: periodic-kjob-test-e2e-release-0-1-1-32
     cluster: eks-prow-build-cluster
     annotations:
-      testgrid-dashboards: sig-apps
+      testgrid-dashboards: sig-apps-kjob-periodics
       testgrid-tab-name: periodic-kjob-test-e2e-release-0-1-1-32
       testgrid-alert-email: kjob-alerts@kubernetes.io
       testgrid-num-failures-to-alert: '1'

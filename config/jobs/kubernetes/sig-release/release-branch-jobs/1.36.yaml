@@ -179,7 +179,7 @@ periodics:
     testgrid-alert-email: gke-kubernetes-accelerators-bugs@google.com, release-team@kubernetes.io,
       sig-node-ci+testgrid@kubernetes.io
     testgrid-alert-stale-results-hours: "24"
-    testgrid-dashboards: sig-release-1.36-blocking, google-gce, sig-node-gpu, sig-node-containerd
+    testgrid-dashboards: sig-release-1.36-blocking, google-gce, sig-node-gpu, sig-node-containerd, nvidia-device-plugin, nvidia-gpu
     testgrid-num-failures-to-alert: "6"
     testgrid-tab-name: gce-device-plugin-gpu-1.36
   cluster: k8s-infra-prow-build

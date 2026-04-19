@@ -3,7 +3,7 @@ postsubmits:
     - name: post-lws-push-images
       cluster: k8s-infra-prow-build-trusted
       annotations:
-        testgrid-dashboards: sig-apps, sig-k8s-infra-gcb
+        testgrid-dashboards: sig-apps-lws, sig-k8s-infra-gcb
       decorate: true
       branches:
         - ^main$
