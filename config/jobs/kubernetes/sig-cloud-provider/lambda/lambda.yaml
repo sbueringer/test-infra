@@ -135,12 +135,14 @@ periodics:
       env:
       - name: GPU_TYPE
         value: "gpu_1x_gh200"
-      # tensorflow/tensorflow:latest-gpu and cupy/cupy:v13.3.0 (used by
-      # "Test using a Pod" and "Test using a Job" in test/e2e/node/gpu.go)
-      # are amd64-only; skip them on arm64 until upstream k/k switches to
-      # multi-arch images.
+      # test/e2e/node/gpu.go hard-codes paths that don't work on arm64:
+      #  - "Test using a Pod" -> tensorflow/tensorflow:latest-gpu (amd64-only)
+      #  - "Test using a Job" -> cupy/cupy:v13.3.0 (amd64-only)
+      #  - "Sanity test using nvidia-smi" -> apt install cuda-demo-suite-12-5
+      #    which NVIDIA only publishes for x86_64 (no package on sbsa).
+      # Skip all three on arm64 until upstream k/k fixes each.
       - name: GINKGO_SKIP
-        value: '\[Flaky\]|Test using a Pod|Test using a Job'
+        value: '\[Flaky\]|Sanity test using nvidia-smi|Test using a Pod|Test using a Job'
       args:
       - bash
       - -c
