@@ -95,10 +95,6 @@ periodics:
       args:
       - hack/ci/gcp-nvkind/e2e-test.sh
       env:
-      - name: BOSKOS_HOST
-        value: "http://boskos.test-pods.svc.cluster.local"
-      - name: BOSKOS_RESOURCE_TYPE
-        value: "gpu-project"
       - name: GCE_ZONE
         value: "us-central1-b"
       - name: GCE_MACHINE_TYPE
@@ -106,11 +102,11 @@ periodics:
       - name: GCE_ACCELERATOR
         value: "type=nvidia-tesla-t4,count=1"
       - name: GCE_IMAGE_FAMILY
-        value: "common-cu129-ubuntu-2204-nvidia-580"
+        value: "common-cu129-ubuntu-2404-nvidia-580"
       - name: GCE_IMAGE_PROJECT
         value: "deeplearning-platform-release"
       - name: K8S_VERSION
-        value: "v1.34.3"
+        value: "v1.35.3"
       - name: GPU_OPERATOR_VERSION
         value: "v26.3.1"
       - name: TESTINFRA_DIR
