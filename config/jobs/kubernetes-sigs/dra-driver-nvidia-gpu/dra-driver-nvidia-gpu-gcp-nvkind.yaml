@@ -25,7 +25,7 @@ presubmits:
       base_ref: master
       path_alias: k8s.io/test-infra
     annotations:
-      testgrid-dashboards: sig-node-gpu
+      testgrid-dashboards: sig-node-gpu, nvidia-gpu, nvidia-dra, nvidia-presubmits
       testgrid-tab-name: pull-dra-driver-nvidia-gpu-gcp-nvkind
       description: "DRA GPU e2e on GCP + nvkind + GPU Operator (optional presubmit)"
     spec:
@@ -83,7 +83,7 @@ periodics:
     base_ref: master
     path_alias: k8s.io/test-infra
   annotations:
-    testgrid-dashboards: sig-node-gpu
+    testgrid-dashboards: sig-node-gpu, nvidia-gpu, nvidia-dra, nvidia-periodics
     testgrid-tab-name: ci-dra-driver-nvidia-gpu-gcp-nvkind
     description: "Periodic DRA GPU e2e on GCP + nvkind + GPU Operator"
   spec:
