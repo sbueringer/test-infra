@@ -79,6 +79,10 @@ fi
 EOF
 
 # --- Run GPU e2e tests ---
+# Default skip pattern; jobs may override via the GINKGO_SKIP env var
+# (e.g. the gh200 periodic skips the two [Feature:GPUDevicePlugin] tests
+# whose container images are amd64-only).
+GINKGO_SKIP="${GINKGO_SKIP:-\\[Flaky\\]}"
 lambda_remote bash -s <<TESTEOF
 set -eux
 export KUBECONFIG=\$HOME/.kube/config
@@ -86,7 +90,7 @@ mkdir -p /tmp/gpu-test-artifacts
 /tmp/ginkgo \
   -timeout=60m \
   -focus="\[Feature:GPUDevicePlugin\]" \
-  -skip="\[Flaky\]" \
+  -skip="${GINKGO_SKIP}" \
   -v \
   /tmp/e2e.test \
   -- \
