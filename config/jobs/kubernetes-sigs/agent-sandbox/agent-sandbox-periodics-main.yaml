@@ -5,7 +5,6 @@ periodics:
   decorate: true
   annotations:
     testgrid-dashboards: sig-apps-agent-sandbox
-    testgrid-tab-name: periodic-perf-load-test
   extra_refs:
   - org: kubernetes-sigs
     repo: agent-sandbox
