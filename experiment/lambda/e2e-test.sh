@@ -29,6 +29,13 @@ source "${SCRIPT_DIR}/lib/lambda-common.sh"
 lambda_init_and_launch
 
 # --- Build k8s binaries ---
+# Install the arm64 cross-compile toolchain when targeting arm64 from an
+# amd64 build host. kubelet's cgo code paths cannot be compiled with
+# CGO_ENABLED=0, so we need a real cross-gcc.
+if [ "${LAMBDA_ARCH}" = "arm64" ] && ! command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
+  echo "Installing aarch64 cross-compile toolchain..."
+  apt-get update -qq && apt-get install -y -qq gcc-aarch64-linux-gnu
+fi
 git fetch --tags --depth 100 origin 2>/dev/null || true
 make \
   WHAT="cmd/kubeadm cmd/kubelet cmd/kubectl test/e2e/e2e.test vendor/github.com/onsi/ginkgo/v2/ginkgo" \
