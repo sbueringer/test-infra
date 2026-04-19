@@ -59,6 +59,7 @@ var (
 		"jetstack",
 		"kubevirt",
 		"lambda",
+		"nvidia",
 	}
 	orgs = []string{
 		"conformance",

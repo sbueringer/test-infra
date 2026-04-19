@@ -33,7 +33,7 @@ presubmits:
       base_ref: master
       path_alias: k8s.io/test-infra
     annotations:
-      testgrid-dashboards: sig-node-gpu, lambda-gpu-presubmits
+      testgrid-dashboards: sig-node-gpu, lambda-gpu-presubmits, nvidia-gpu, nvidia-dra, nvidia-presubmits
       testgrid-tab-name: pull-dra-driver-nvidia-gpu-lambda
       description: "DRA GPU e2e tests on Lambda Cloud for dra-driver-nvidia-gpu PRs"
     spec:
@@ -76,7 +76,7 @@ presubmits:
       base_ref: master
       path_alias: k8s.io/test-infra
     annotations:
-      testgrid-dashboards: sig-node-gpu, lambda-gpu-presubmits
+      testgrid-dashboards: sig-node-gpu, lambda-gpu-presubmits, nvidia-gpu, nvidia-dra, nvidia-arm64, nvidia-presubmits
       testgrid-tab-name: pull-dra-driver-nvidia-gpu-lambda-gh200
       description: "DRA GPU e2e tests on a Lambda Cloud gpu_1x_gh200 (arm64) instance"
     spec:
@@ -107,7 +107,7 @@ periodics:
   labels:
     preset-lambda-credential: "true"
   annotations:
-    testgrid-dashboards: sig-node-gpu, lambda-gpu-periodics
+    testgrid-dashboards: sig-node-gpu, lambda-gpu-periodics, nvidia-gpu, nvidia-dra, nvidia-periodics
     testgrid-tab-name: ci-dra-driver-nvidia-gpu-lambda
     description: "Periodic DRA GPU e2e tests on Lambda Cloud"
   extra_refs:
@@ -151,7 +151,7 @@ periodics:
   labels:
     preset-lambda-credential: "true"
   annotations:
-    testgrid-dashboards: sig-node-gpu, lambda-gpu-periodics
+    testgrid-dashboards: sig-node-gpu, lambda-gpu-periodics, nvidia-gpu, nvidia-dra, nvidia-arm64, nvidia-periodics
     testgrid-tab-name: ci-dra-driver-nvidia-gpu-lambda-gh200
     description: "Periodic DRA GPU e2e tests on a Lambda Cloud gpu_1x_gh200 (arm64) instance"
   extra_refs:
