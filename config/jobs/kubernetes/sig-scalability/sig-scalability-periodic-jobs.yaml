@@ -1160,10 +1160,10 @@ periodics:
         value: "4"
       - name: CL2_EXECSERVICE_MEMORY_REQUESTS
         value: "8Gi"
-      # Override for 1.5GB pod resource size
+      # Migrating from resource from payload to realistic pod. Taget 1.5GB pod resource.
+      - name: CL2_REALISTIC_POD
+        value: "true"
       - name: CL2_DAEMONSET_POD_PAYLOAD_SIZE
-        value: "6000"
-      - name: CL2_DEPLOYMENT_POD_PAYLOAD_SIZE
         value: "6000"
       - name: CL2_STATEFULSET_POD_PAYLOAD_SIZE
         value: "6000"
