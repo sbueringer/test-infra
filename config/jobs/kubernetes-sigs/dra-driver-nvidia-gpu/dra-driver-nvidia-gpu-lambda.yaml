@@ -45,7 +45,7 @@ presubmits:
         - hack/ci/lambda/e2e-test.sh
         env:
         - name: GPU_TYPE
-          value: ""
+          value: "gpu_1x_a10"
         resources:
           requests:
             cpu: "4"
@@ -55,8 +55,8 @@ presubmits:
             memory: "8Gi"
 
   # Variant pinned to gpu_1x_gh200 (arm64). Runs on every PR to guarantee
-  # arm64 coverage; the GPU_TYPE="" presubmit above picks whatever instance
-  # type Lambda has spare and rarely lands on gh200 in practice. Kept
+  # arm64 coverage; the GPU_TYPE="gpu_1x_a10" presubmit above picks A10 instance
+  # type Lambda has and rarely lands on gh200 in practice. Kept
   # optional so a gh200 stockout or arm64-only flake doesn't gate merges.
   - name: pull-dra-driver-nvidia-gpu-e2e-lambda-gpu-gh200
     cluster: k8s-infra-prow-build
@@ -128,7 +128,7 @@ periodics:
       - hack/ci/lambda/e2e-test.sh
       env:
       - name: GPU_TYPE
-        value: ""
+        value: "gpu_1x_a10"
       resources:
         requests:
           cpu: "4"
@@ -137,7 +137,7 @@ periodics:
           cpu: "4"
           memory: "8Gi"
 
-# Same 6h cadence as the GPU_TYPE="" periodic above, but pinned to
+# Same 6h cadence as the GPU_TYPE="gpu_1x_a10" periodic above, but pinned to
 # gpu_1x_gh200 (arm64). Cron fires at 00:30, 06:30, 12:30, 18:30 UTC --
 # maximally offset (3h) from ci-kubernetes-e2e-lambda-device-plugin-gpu-gh200
 # at "30 3,9,15,21 * * *" so the two gh200 periodics don't compete for Lambda
