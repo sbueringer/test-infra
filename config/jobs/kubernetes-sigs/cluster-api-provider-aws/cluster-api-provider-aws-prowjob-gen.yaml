@@ -10,6 +10,8 @@ prow_ignored:
   branches:
     main:
       testImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20260316-e86cefa561-1.33"
+    release-2.11:
+      testImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20260316-e86cefa561-1.33"
     release-2.10:
       testImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20260316-e86cefa561-1.33"
     release-2.9:
