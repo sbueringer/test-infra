@@ -345,7 +345,7 @@ presubmits:
     - name: pull-kueue-test-e2e-sequential-baseline-main
       cluster: eks-prow-build-cluster
       branches:
-          - ^main
+        - ^main
       skip_if_only_changed: "^docs/|^\\.github/|\\.(md)$|^(README|LICENSE|OWNERS)$|^(keps|site|charts)/"
       decorate: true
       path_alias: sigs.k8s.io/kueue
