@@ -555,7 +555,7 @@ def generate_grid():
             for k8s_version in [v for v in k8s_versions if v != 'master']:
                 for kops_version in kops_versions:
                     # cilium-etcd + gce support was added in kops 1.36+
-                    if networking == 'cilium-etcd' and kops_version in ('1.32', '1.33', '1.34', '1.35'):
+                    if networking == 'cilium-etcd' and kops_version in ('1.32', '1.33', '1.34', '1.35', '1.36'):
                         continue
                     distro_short = distro_shortener(distro)
                     extra_flags = ["--gce-service-account=default"] # Workaround for test-infra#24747
@@ -1932,7 +1932,7 @@ def generate_versions():
 ######################
 def generate_pipeline():
     results = []
-    for version in ['master', '1.35', '1.34', '1.33', '1.32']:
+    for version in ['master', '1.36', '1.35', '1.34', '1.33']:
         branch = version if version == 'master' else f"release-{version}"
         publish_version_marker = f"gs://k8s-staging-kops/kops/releases/markers/{branch}/latest-ci-updown-green.txt"
         kops_version = f"https://storage.googleapis.com/k8s-staging-kops/kops/releases/markers/{branch}/latest-ci.txt"
@@ -1958,7 +1958,7 @@ def generate_pipeline():
 ######################
 def generate_presubmits_branch():
     results = []
-    for version in ['1.35', '1.34', '1.33', '1.32']:
+    for version in ['1.36', '1.35', '1.34', '1.33']:
         results.extend([
             presubmit_test(
                 name=f"pull-kops-e2e-k8s-aws-calico-{version.replace('.', '-')}",
@@ -2460,7 +2460,7 @@ def generate_presubmits_e2e():
                 'KOPS_VERSION_A': "1.34",
                 'K8S_VERSION_A': "v1.34.7",
                 'KOPS_VERSION_B': "latest",
-                'K8S_VERSION_B': "v1.36.0-rc.1",
+                'K8S_VERSION_B': "v1.36.0",
                 'KOPS_SKIP_E2E': '1',
                 'KOPS_TEMPLATE': 'tests/e2e/templates/many-addons.yaml.tmpl',
                 'KOPS_CONTROL_PLANE_SIZE': '3',
@@ -2480,7 +2480,7 @@ def generate_presubmits_e2e():
                 'KOPS_VERSION_A': "1.35",
                 'K8S_VERSION_A': "v1.35.4",
                 'KOPS_VERSION_B': "latest",
-                'K8S_VERSION_B': "v1.36.0-rc.1",
+                'K8S_VERSION_B': "v1.36.0",
                 'KOPS_SKIP_E2E': '1',
                 'KOPS_TEMPLATE': 'tests/e2e/templates/many-addons.yaml.tmpl',
                 'KOPS_CONTROL_PLANE_SIZE': '3',
