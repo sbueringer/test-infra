@@ -523,14 +523,14 @@ def generate_grid():
                             # Missing support for nftables
                             # https://github.com/cloudnativelabs/kube-router/issues/2034
                             continue
+                        if networking == 'amazon-vpc':
+                            # RHEL10/Rocky10 kernels removed xt_comment and xt_conntrack modules;
+                            # the AWS VPC CNI requires these for iptables-nft SNAT rules.
+                            continue
                         # https://github.com/kubernetes/kops/issues/17915
                         extra_flags.extend([
                             "--set=cluster.spec.kubeProxy.proxyMode=nftables",
                         ])
-                        if networking == 'amazon-vpc':
-                            extra_flags.extend([
-                                "--set=cluster.spec.networking.amazonVPC.env=ENABLE_NFTABLES=true",
-                            ])
                         if 'cilium' in networking:
                             extra_flags.extend([
                                 "--set=cluster.spec.networking.cilium.enableBPFMasquerade=true",
