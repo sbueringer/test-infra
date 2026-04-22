@@ -56,7 +56,7 @@ periodics:
     decorate: true
     spec:
       containers:
-      - image: public.ecr.aws/docker/library/golang:1.25
+      - image: public.ecr.aws/docker/library/golang:1.26
         command:
         - make
         args:
@@ -92,7 +92,7 @@ periodics:
             - name: E2E_KIND_VERSION
               value: kindest/node:v1.33.1
             - name: BUILDER_IMAGE
-              value: public.ecr.aws/docker/library/golang:1.25
+              value: public.ecr.aws/docker/library/golang:1.26
           command:
             # generic runner script, handles DIND, bazelrc for caching, etc.
             - runner.sh
@@ -132,7 +132,7 @@ periodics:
             - name: E2E_KIND_VERSION
               value: kindest/node:v1.34.0
             - name: BUILDER_IMAGE
-              value: public.ecr.aws/docker/library/golang:1.25
+              value: public.ecr.aws/docker/library/golang:1.26
           command:
             # generic runner script, handles DIND, bazelrc for caching, etc.
             - runner.sh
@@ -172,7 +172,7 @@ periodics:
             - name: E2E_KIND_VERSION
               value: kindest/node:v1.35.0
             - name: BUILDER_IMAGE
-              value: public.ecr.aws/docker/library/golang:1.25
+              value: public.ecr.aws/docker/library/golang:1.26
           command:
             # generic runner script, handles DIND, bazelrc for caching, etc.
             - runner.sh
