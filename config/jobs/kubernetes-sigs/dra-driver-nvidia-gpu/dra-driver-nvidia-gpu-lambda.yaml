@@ -46,6 +46,8 @@ presubmits:
         env:
         - name: GPU_TYPE
           value: "gpu_1x_a10"
+        - name: BATS_TARGET
+          value: "tests-gpu-a10"
         resources:
           requests:
             cpu: "4"
@@ -129,6 +131,8 @@ periodics:
       env:
       - name: GPU_TYPE
         value: "gpu_1x_a10"
+      - name: BATS_TARGET
+        value: "tests-gpu-a10"
       resources:
         requests:
           cpu: "4"
