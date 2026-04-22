@@ -454,6 +454,10 @@ branch-protection:
             users: []
             teams:
             - stage-bots
+        node-problem-detector:
+          required_status_checks:
+            contexts:
+            - lint
         org:
           restrictions: # only allow admins
             users: []
