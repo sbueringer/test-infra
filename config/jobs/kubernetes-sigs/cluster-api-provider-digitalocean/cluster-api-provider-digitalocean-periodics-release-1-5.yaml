@@ -16,7 +16,7 @@ periodics:
       path_alias: "sigs.k8s.io/cluster-api-provider-digitalocean"
   spec:
     containers:
-    - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20241125-b4ea3e27a6-1.28
+    - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:v20260316-e86cefa561-master
       command:
         - "runner.sh"
         - "./scripts/ci-conformance.sh"
