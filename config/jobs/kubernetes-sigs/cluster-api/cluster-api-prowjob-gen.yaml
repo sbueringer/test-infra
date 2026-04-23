@@ -35,11 +35,9 @@ prow_ignored:
       testImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20260316-e86cefa561-1.35"
       interval: "3h"
       upgradesInterval: "24h"
-      kubernetesVersionManagement: "v1.32.8"
-      kubebuilderEnvtestKubernetesVersion: "1.32.0"
+      kubernetesVersionManagement: "v1.33.11"
+      kubebuilderEnvtestKubernetesVersion: "1.33.0"
       upgrades:
-        - from: "1.30"
-          to: "1.31"
         - from: "1.31"
           to: "1.32"
         - from: "1.32"
@@ -50,6 +48,8 @@ prow_ignored:
           to: "1.35"
         - from: "1.35"
           to: "1.36"
+        - from: "1.36"
+          to: "1.37"
     release-1.13:
       testImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20260316-e86cefa561-1.35"
       interval: "4h"
@@ -122,10 +122,6 @@ prow_ignored:
 
   # Versions provides kubernetes minor version to key-value pairs mapping.
   versions:
-    "1.27":
-      etcd: "3.5.10-0"
-      coreDNS: "v1.10.1"
-      k8sRelease: "stable-1.27"
     "1.28":
       etcd: "3.5.15-0"
       coreDNS: "v1.10.1"
@@ -161,4 +157,8 @@ prow_ignored:
     "1.36":
       etcd: "3.6.8-0"
       coreDNS: "v1.14.2"
-      k8sRelease: "ci/latest-1.36"
+      k8sRelease: "stable-1.36"
+    "1.37":
+      etcd: "3.6.8-0"
+      coreDNS: "v1.14.2"
+      k8sRelease: "ci/latest-1.37"
