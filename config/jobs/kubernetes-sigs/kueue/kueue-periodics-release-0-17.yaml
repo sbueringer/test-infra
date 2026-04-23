@@ -22,7 +22,7 @@ periodics:
       timeout: 1h
     spec:
       containers:
-        - image: public.ecr.aws/docker/library/golang:1.25
+        - image: public.ecr.aws/docker/library/golang:1.26
           env:
             - name: GO_TEST_FLAGS
               value: "-race -count 3"
@@ -101,7 +101,7 @@ periodics:
       timeout: 1h
     spec:
       containers:
-        - image: public.ecr.aws/docker/library/golang:1.25
+        - image: public.ecr.aws/docker/library/golang:1.26
           command:
             - make
           args:
@@ -139,7 +139,7 @@ periodics:
       timeout: 1h
     spec:
       containers:
-        - image: public.ecr.aws/docker/library/golang:1.25
+        - image: public.ecr.aws/docker/library/golang:1.26
           command:
             - make
           args:
@@ -177,7 +177,7 @@ periodics:
       timeout: 1h
     spec:
       containers:
-        - image: public.ecr.aws/docker/library/golang:1.25
+        - image: public.ecr.aws/docker/library/golang:1.26
           command:
             - make
           args:
@@ -215,7 +215,7 @@ periodics:
       timeout: 1h
     spec:
       containers:
-        - image: public.ecr.aws/docker/library/golang:1.25
+        - image: public.ecr.aws/docker/library/golang:1.26
           command:
             - make
           args:

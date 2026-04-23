@@ -13,7 +13,7 @@ presubmits:
         description: "Run kueue unit tests"
       spec:
         containers:
-          - image: public.ecr.aws/docker/library/golang:1.25
+          - image: public.ecr.aws/docker/library/golang:1.26
             env:
               - name: GO_TEST_FLAGS
                 value: "-race -count 3"
@@ -43,7 +43,7 @@ presubmits:
         description: "Run kueue test-integration-baseline"
       spec:
         containers:
-          - image: public.ecr.aws/docker/library/golang:1.25
+          - image: public.ecr.aws/docker/library/golang:1.26
             command:
               - make
             args:
@@ -71,7 +71,7 @@ presubmits:
         description: "Run kueue test-integration-extended"
       spec:
         containers:
-          - image: public.ecr.aws/docker/library/golang:1.25
+          - image: public.ecr.aws/docker/library/golang:1.26
             command:
               - make
             args:
@@ -99,7 +99,7 @@ presubmits:
         description: "Run kueue test-multikueue-integration"
       spec:
         containers:
-          - image: public.ecr.aws/docker/library/golang:1.25
+          - image: public.ecr.aws/docker/library/golang:1.26
             command:
               - make
             args:
@@ -731,7 +731,7 @@ presubmits:
         description: "Run kueue test-scheduling-perf"
       spec:
         containers:
-          - image: public.ecr.aws/docker/library/golang:1.25
+          - image: public.ecr.aws/docker/library/golang:1.26
             command:
               - make
             args:
@@ -759,7 +759,7 @@ presubmits:
         description: "Run kueue test-tas-scheduling-perf"
       spec:
         containers:
-          - image: public.ecr.aws/docker/library/golang:1.25
+          - image: public.ecr.aws/docker/library/golang:1.26
             command:
               - make
             args:
@@ -820,7 +820,7 @@ presubmits:
         description: "Run kueue-populator unit tests"
       spec:
         containers:
-          - image: public.ecr.aws/docker/library/golang:1.25
+          - image: public.ecr.aws/docker/library/golang:1.26
             env:
               - name: GO_TEST_FLAGS
                 value: "-race -count 3"
@@ -850,7 +850,7 @@ presubmits:
         description: "Run kueue-populator integration tests"
       spec:
         containers:
-          - image: public.ecr.aws/docker/library/golang:1.25
+          - image: public.ecr.aws/docker/library/golang:1.26
             command:
               - make
             args:
