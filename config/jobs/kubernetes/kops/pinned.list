@@ -39,3 +39,5 @@ aws://images/099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-ser
 aws://images/099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*:arm64=099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-20260409
 aws://images/099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-questing-25.10-amd64-server-*:x86_64=099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-questing-25.10-amd64-server-20260410
 aws://images/099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-questing-25.10-arm64-server-*:arm64=099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-questing-25.10-arm64-server-20260410
+aws://images/099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-*:x86_64=099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-20260421
+aws://images/099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-arm64-server-*:arm64=099720109477/ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-arm64-server-20260421
