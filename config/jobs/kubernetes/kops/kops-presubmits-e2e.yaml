@@ -2108,7 +2108,7 @@ presubmits:
         - name: KOPS_VERSION_B
           value: "latest"
         - name: K8S_VERSION_B
-          value: "v1.36.0-rc.1"
+          value: "v1.36.0"
         - name: KOPS_SKIP_E2E
           value: "1"
         - name: KOPS_TEMPLATE
@@ -2178,7 +2178,7 @@ presubmits:
         - name: KOPS_VERSION_B
           value: "latest"
         - name: K8S_VERSION_B
-          value: "v1.36.0-rc.1"
+          value: "v1.36.0"
         - name: KOPS_SKIP_E2E
           value: "1"
         - name: KOPS_TEMPLATE
