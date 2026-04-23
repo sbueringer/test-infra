@@ -21,6 +21,8 @@ prow_ignored:
         to: "1.35"
       - from: "1.35"
         to: "1.36"
+      - from: "1.36"
+        to: "1.37"
     release-1.16:
       testImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20260316-e86cefa561-1.35"
       # interval for coverage job
@@ -99,4 +101,6 @@ prow_ignored:
     "1.35":
       k8sRelease: "stable-1.35"
     "1.36":
-      k8sRelease: "ci/latest-1.36"
+      k8sRelease: "stable-1.36"
+    "1.37":
+      k8sRelease: "ci/latest-1.37"
