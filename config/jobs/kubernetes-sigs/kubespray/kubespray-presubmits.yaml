@@ -33,14 +33,21 @@ presubmits:
     decorate: true
     spec:
       containers:
-      - image: quay.io/kubespray/kubespray:v2.13.0
+      - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:v20260316-e86cefa561-master
         command:
-        - /bin/bash
+        - runner.sh
         args:
+        - bash
         - -ceu
         - |
-          cd test-infra/image-builder
-          make validate-single image_name=ubuntu-2404
+          apt-get update
+          apt-get install -y --no-install-recommends qemu-utils uidmap fuse-overlayfs
+          python3 -m pip install --no-cache-dir --break-system-packages ansible-core
+          ansible-galaxy collection install community.general
+          buildkit_arch="$(dpkg --print-architecture)"
+          curl -fsSL "https://github.com/moby/buildkit/releases/download/v0.25.1/buildkit-v0.25.1.linux-${buildkit_arch}.tar.gz" -o /tmp/buildkit.tgz
+          tar -C /usr/local --strip-components=1 -xzf /tmp/buildkit.tgz
+          make -C test-infra/image-builder validate-single image_name=ubuntu-2404
         resources:
           limits:
             cpu: 1
