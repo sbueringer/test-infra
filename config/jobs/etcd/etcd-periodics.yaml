@@ -289,10 +289,10 @@ periodics:
       resources:
         requests:
           cpu: "7"
-          memory: "14Gi"
+          memory: "20Gi"
         limits:
           cpu: "7"
-          memory: "14Gi"
+          memory: "20Gi"
       # fuse needs privileged mode
       securityContext:
         privileged: true
@@ -335,10 +335,10 @@ periodics:
       resources:
         requests:
           cpu: "7"
-          memory: "14Gi"
+          memory: "20Gi"
         limits:
           cpu: "7"
-          memory: "14Gi"
+          memory: "20Gi"
       # fuse needs privileged mode
       securityContext:
         privileged: true
@@ -381,10 +381,10 @@ periodics:
       resources:
         requests:
           cpu: "7"
-          memory: "14Gi"
+          memory: "20Gi"
         limits:
           cpu: "7"
-          memory: "14Gi"
+          memory: "20Gi"
       # fuse needs privileged mode
       securityContext:
         privileged: true
@@ -425,10 +425,10 @@ periodics:
       resources:
         requests:
           cpu: "7"
-          memory: "14Gi"
+          memory: "20Gi"
         limits:
           cpu: "7"
-          memory: "14Gi"
+          memory: "20Gi"
       # fuse needs privileged mode
       securityContext:
         privileged: true
