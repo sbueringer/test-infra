@@ -106,3 +106,32 @@ presubmits:
     annotations:
       testgrid-dashboards: sig-apps-agent-sandbox
       testgrid-tab-name: presubmit-e2e-test
+  - name: presubmit-agent-sandbox-benchmarks-kops-gcp
+    cluster: eks-prow-build-cluster
+    skip_if_only_changed: "^(docs|site)/|\\.md$|^(\\.gitignore|LICENSE|netlify\\.toml|OWNERS)$|^\\.github/workflows/"
+    decorate: true
+    always_run: false # Require manual invocation, while we iterate
+    optional: true # Don't block merges, while we iterate
+    labels:
+      preset-dind-enabled: "true"
+    spec:
+      containers:
+      - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:v20260316-e86cefa561-master
+        env:
+        - name: "BOSKOS_HOST"
+          value: "boskos.test-pods.svc.cluster.local"
+        command:
+        - runner.sh
+        - test/benchmarks/scenarios/benchmarks-kops-gcp/run
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: 7
+            memory: 14Gi
+          limits:
+            cpu: 7
+            memory: 14Gi
+    annotations:
+      testgrid-dashboards: sig-apps-agent-sandbox
+      testgrid-tab-name: presubmit-agent-sandbox-benchmarks-kops-gcp
