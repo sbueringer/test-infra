@@ -41,12 +41,14 @@ presubmits:
         - -ceu
         - |
           apt-get update
-          apt-get install -y --no-install-recommends qemu-utils uidmap fuse-overlayfs
+          apt-get install -y --no-install-recommends qemu-utils uidmap fuse-overlayfs rootlesskit ca-certificates curl
           python3 -m pip install --no-cache-dir --break-system-packages ansible-core
           ansible-galaxy collection install community.general
           buildkit_arch="$(dpkg --print-architecture)"
           curl -fsSL "https://github.com/moby/buildkit/releases/download/v0.25.1/buildkit-v0.25.1.linux-${buildkit_arch}.tar.gz" -o /tmp/buildkit.tgz
-          tar -C /usr/local --strip-components=1 -xzf /tmp/buildkit.tgz
+          tar -C /usr/local -xzf /tmp/buildkit.tgz
+          curl -fsSL "https://raw.githubusercontent.com/moby/buildkit/v0.25.1/examples/buildctl-daemonless/buildctl-daemonless.sh" -o /usr/local/bin/buildctl-daemonless.sh
+          chmod +x /usr/local/bin/buildctl-daemonless.sh
           make -C test-infra/image-builder validate-single image_name=ubuntu-2404
         resources:
           limits:
