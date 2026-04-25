@@ -41,15 +41,34 @@ presubmits:
         - -ceu
         - |
           apt-get update
-          apt-get install -y --no-install-recommends qemu-utils uidmap fuse-overlayfs rootlesskit ca-certificates curl
+          apt-get install -y --no-install-recommends qemu-utils uidmap fuse-overlayfs rootlesskit slirp4netns ca-certificates curl
           python3 -m pip install --no-cache-dir --break-system-packages ansible-core
-          ansible-galaxy collection install community.general
+          ansible-galaxy collection install community.general -p /usr/share/ansible/collections
           buildkit_arch="$(dpkg --print-architecture)"
           curl -fsSL "https://github.com/moby/buildkit/releases/download/v0.25.1/buildkit-v0.25.1.linux-${buildkit_arch}.tar.gz" -o /tmp/buildkit.tgz
           tar -C /usr/local -xzf /tmp/buildkit.tgz
           curl -fsSL "https://raw.githubusercontent.com/moby/buildkit/v0.25.1/examples/buildctl-daemonless/buildctl-daemonless.sh" -o /usr/local/bin/buildctl-daemonless.sh
           chmod +x /usr/local/bin/buildctl-daemonless.sh
-          make -C test-infra/image-builder validate-single image_name=ubuntu-2404
+
+          # Run BuildKit rootless as a non-root user.
+          if ! id -u prowbuilder >/dev/null 2>&1; then
+            useradd -m -s /bin/bash prowbuilder
+          fi
+          prowbuilder_uid="$(id -u prowbuilder)"
+          prowbuilder_home="$(getent passwd prowbuilder | cut -d: -f6)"
+          grep -q '^prowbuilder:' /etc/subuid || echo 'prowbuilder:100000:65536' >> /etc/subuid
+          grep -q '^prowbuilder:' /etc/subgid || echo 'prowbuilder:100000:65536' >> /etc/subgid
+          install -d -m 700 -o prowbuilder -g prowbuilder "/run/user/${prowbuilder_uid}"
+          install -d -m 700 -o prowbuilder -g prowbuilder "${prowbuilder_home}/.local/share/buildkit"
+          install -d -m 700 -o prowbuilder -g prowbuilder "${prowbuilder_home}/.local/tmp"
+          chown -R prowbuilder:prowbuilder /home/prow/go/src/github.com/kubernetes-sigs/kubespray
+
+          if [ "$(cat /proc/sys/user/max_user_namespaces 2>/dev/null || echo 0)" = "0" ]; then
+            echo "user namespaces are disabled on this node; rootless BuildKit cannot run" >&2
+            exit 1
+          fi
+
+          su -s /bin/bash -c "export HOME=${prowbuilder_home}; export XDG_RUNTIME_DIR=/run/user/${prowbuilder_uid}; export TMPDIR=${prowbuilder_home}/.local/tmp; export BUILDKITD_FLAGS='--rootless --oci-worker-no-process-sandbox --oci-worker-snapshotter=native'; make -C test-infra/image-builder validate-single image_name=ubuntu-2404" prowbuilder
         resources:
           limits:
             cpu: 1
