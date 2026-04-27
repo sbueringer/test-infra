@@ -1160,15 +1160,8 @@ periodics:
         value: "8"
       - name: CL2_EXECSERVICE_MEMORY_REQUESTS
         value: "16Gi"
-      # Migrating from resource from payload to realistic pod. Taget 1.5GB pod resource.
       - name: CL2_REALISTIC_POD
         value: "true"
-      - name: CL2_DAEMONSET_POD_PAYLOAD_SIZE
-        value: "6000"
-      - name: CL2_STATEFULSET_POD_PAYLOAD_SIZE
-        value: "6000"
-      - name: CL2_JOB_POD_PAYLOAD_SIZE
-        value: "6000"
       #  Remaining parameters should match ci-kubernetes-e2e-gce-scale-performance-5000
       - name: KUBE_SSH_KEY_PATH
         value: /etc/ssh-key-secret/ssh-private
