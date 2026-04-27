@@ -107,7 +107,7 @@ presubmits:
       testgrid-dashboards: sig-apps-agent-sandbox
       testgrid-tab-name: presubmit-e2e-test
   - name: presubmit-agent-sandbox-benchmarks-kops-gcp
-    cluster: eks-prow-build-cluster
+    cluster: k8s-infra-prow-build
     skip_if_only_changed: "^(docs|site)/|\\.md$|^(\\.gitignore|LICENSE|netlify\\.toml|OWNERS)$|^\\.github/workflows/"
     decorate: true
     always_run: false # Require manual invocation, while we iterate
