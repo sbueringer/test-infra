@@ -497,6 +497,10 @@ def generate_grid():
                     # but not backported to earlier kops versions.
                     if kops_version == '1.34' and (distro_short in ('deb13', 'al2023', 'al2023arm64') and networking == 'amazon-vpc') or (distro_short in ('deb13', 'al2023', 'al2023arm64') and networking == 'cilium-eni'):
                         continue
+                    # Tests flake due to cilium 1.16 config issue. Fixed with cilium 1.18 in kops 1.34+
+                    # "Unable to connect to kvstore: timed out while waiting for etcd session"
+                    if kops_version in ('1.32', '1.33') and networking == 'cilium-etcd':
+                        continue
                     extra_flags = []
                     if 'arm64' in distro:
                         extra_flags.extend([
