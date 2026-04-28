@@ -495,7 +495,7 @@ def generate_grid():
                             continue
                     # Fixes in https://github.com/kubernetes/kops/pull/17940
                     # but not backported to earlier kops versions.
-                    if kops_version == '1.34' and (distro_short in ('deb13') and networking == 'amazon-vpc') or (distro_short in ('deb13', 'al2023', 'al2023arm64') and networking == 'cilium-eni'):
+                    if kops_version == '1.34' and (distro_short in ('deb13', 'al2023', 'al2023arm64') and networking == 'amazon-vpc') or (distro_short in ('deb13', 'al2023', 'al2023arm64') and networking == 'cilium-eni'):
                         continue
                     extra_flags = []
                     if 'arm64' in distro:
