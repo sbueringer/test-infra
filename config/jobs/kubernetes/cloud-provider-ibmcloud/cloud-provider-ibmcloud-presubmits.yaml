@@ -48,7 +48,7 @@ presubmits:
                 --workers-count 1 \
                 --up --down --auto-approve --retry-on-tf-failure 3 --ignore-destroy-errors \
                 --break-kubetest-on-upfail true \
-                --powervs-memory 32 \
+                --powervs-memory 8 --powervs-processors 0.25 \
                 --test=ginkgo -- --parallel 30 --test-package-dir ci --test-package-version $K8S_BUILD_VERSION --focus-regex='Pods should be submitted and removed'
 
   - name: pull-provider-ibmcloud-test-infra-kubetest2-secretmanager-build
