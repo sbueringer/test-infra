@@ -35,7 +35,7 @@ presubmits:
     run_if_changed: '^(config/prow/(config|plugins).yaml$|config/jobs/.*.yaml$)'
     spec:
       containers:
-      - image: us-docker.pkg.dev/k8s-infra-prow/images/checkconfig:v20260428-22556bc22
+      - image: us-docker.pkg.dev/k8s-infra-prow/images/checkconfig:v20260429-8f72e9c5a
         command:
         - checkconfig
         args:
